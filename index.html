@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AFPG Form Autofill Rules + Template Dashboard - Field Rules Master</title>
+<title>AFPG Form Autofill Rules + Template Dashboard v9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -14,9 +14,10 @@ header{background:linear-gradient(135deg,#0c2f66,#0e766e);color:#fff;padding:26p
 main{padding:24px;max-width:1550px;margin:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 22px rgba(16,24,40,.06);padding:18px;margin-bottom:18px}.card h2{font-size:18px;margin:0 0 12px}.card h3{font-size:15px;margin:14px 0 8px}.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}label{font-size:12px;font-weight:800;color:#344054}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff}textarea{min-height:76px;resize:vertical}.upload{border:2px dashed #b7c4d6;border-radius:16px;padding:18px;text-align:center;background:#fbfdff}.upload input{border:none;padding:6px}.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#475467}.btn.green{background:var(--brand2)}.btn.light{background:#eef4ff;color:#143c7d}.btn.red{background:#b42318}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;background:#eef4ff;color:#143c7d}.pill.good{background:#ecfdf3;color:var(--good)}.pill.warn{background:#fffaeb;color:var(--warn)}.pill.bad{background:#fef3f2;color:var(--bad)}
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.kpi{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px}.kpi b{font-size:22px}.kpi span{display:block;font-size:12px;color:var(--muted);margin-top:3px}.mini{font-size:12px;color:var(--muted);line-height:1.45}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#f8fafc;font-size:12px;color:#344054;position:sticky;top:0}tr:last-child td{border-bottom:0}.found{color:var(--good);font-weight:900}.missing{color:var(--bad);font-weight:900}.log{background:#101828;color:#d0d5dd;border-radius:14px;padding:12px;min-height:125px;max-height:270px;overflow:auto;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900;cursor:pointer}.tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}.hidden{display:none}.mapGrid{display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr .8fr 70px;gap:8px;align-items:end}.smallBtn{padding:8px 10px;border-radius:10px;font-size:12px}.footerNote{padding:14px;border-radius:14px;background:#fffaeb;border:1px solid #fedf89;color:#7a2e0e}.mono{font-family:Consolas,monospace;font-size:12px}.preview{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px;white-space:pre-wrap;max-height:280px;overflow:auto}.full{grid-column:1/-1}.checklist li{margin:7px 0}.ok{color:var(--good);font-weight:800}.warnText{color:var(--warn);font-weight:800}@media(max-width:950px){.grid,.row,.row3,.kpis{grid-template-columns:1fr}.mapGrid{grid-template-columns:1fr}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header><h1 class="title">AFPG Form Autofill Rules + Template Dashboard - Field Rules Master</h1><p class="subtitle">Upload the client Fact Find, Macquarie Account Details/Portfolio report and a client form. This version reads DOCX Fact Finds, Macquarie portfolio/super reports and blank PDF forms. It detects sections from the uploaded form, gives a Yes/No rule grid for each section/page, separates provider account numbers from bank BSB/account numbers, supports overlay writing for flat PDFs, and saves the whole setup as a reusable template. You can now choose Yes/No for each detected PDF field and save those field-level prefill rules. Direct Debit forms now auto-tick “Set-up a new plan” and “One-off contribution”, split the 6-digit BSB into the separated BSB boxes, and prevent duplicate overlay text on fillable bank fields. Pension Update Forms have a hard-stop rule: pages 2, 3, 4, 5 and 6 are never completed.</p></header>
+<header><h1 class="title">AFPG Form Autofill Rules + Template Dashboard v9</h1><p class="subtitle">Upload the client Fact Find, Macquarie Account Details/Portfolio report and a client form. This version reads DOCX Fact Finds, Macquarie portfolio/super reports and blank PDF forms. It detects sections from the uploaded form, gives a Yes/No rule grid for each section/page, separates provider account numbers from bank BSB/account numbers, supports overlay writing for flat PDFs, and saves the whole setup as a reusable template. Direct Debit forms now auto-tick “Set-up a new plan” and “One-off contribution”, split the 6-digit BSB into the separated BSB boxes, and prevent duplicate overlay text on fillable bank fields.</p></header>
 <main>
 <section class="card">
   <div class="kpis">
@@ -83,7 +84,7 @@ main{padding:24px;max-width:1550px;margin:auto}.grid{display:grid;grid-template-
     <div id="tab-status">
       <h2>Readiness check</h2>
       <ul class="checklist" id="readiness"></ul>
-      <div class="footerNote"><b>Pension Update hard stop:</b> Pages 2, 3, 4, 5 and 6 are never completed. <br><br><b>Why v1 failed:</b> the Fact Find was a DOCX table, the Macquarie details were deeper in the report, and the Pension Update form is likely a flat PDF or has limited field names. v3 fixes this by adding DOCX parsing, full-PDF scanning and overlay writing.</div>
+      <div class="footerNote"><b>Why v1 failed:</b> the Fact Find was a DOCX table, the Macquarie details were deeper in the report, and the Pension Update form is likely a flat PDF or has limited field names. v3 fixes this by adding DOCX parsing, full-PDF scanning and overlay writing.</div>
       <h3>Activity log</h3><div class="log" id="log">Ready.</div>
     </div>
     <div id="tab-fields" class="hidden">
@@ -96,9 +97,8 @@ main{padding:24px;max-width:1550px;margin:auto}.grid{display:grid;grid-template-
       <div class="tableWrap"><table><thead><tr><th>Page</th><th>Complete this page?</th><th>What to do if No</th></tr></thead><tbody id="quickPageRows"></tbody></table></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
       <h2>Detected PDF form fields</h2>
-      <p class="mini">For each detected PDF field, choose whether it should be prefilled. You can also override which dashboard value should be used. These field-level rules save against the form name and will be included when you save a template.</p>
-      <div class="btns"><button class="btn light" onclick="setAllFieldRules(true)">Prefill all fields</button><button class="btn light" onclick="setAllFieldRules(false)">Do not prefill any fields</button><button class="btn light" onclick="saveFieldRulesForCurrentForm()">Save PDF field rules</button><button class="btn light" onclick="loadFieldRulesForCurrentForm()">Load PDF field rules</button></div>
-      <div class="tableWrap"><table><thead><tr><th>#</th><th>Prefill?</th><th>Field name</th><th>Type</th><th>Value to use</th><th>Suggested/current value</th></tr></thead><tbody id="pdfFields"></tbody></table></div>
+      <p class="mini">If this table is empty, the PDF is flat/non-fillable. Use overlay mapping instead.</p>
+      <div class="tableWrap"><table><thead><tr><th>#</th><th>Field name</th><th>Type</th><th>Suggested value</th></tr></thead><tbody id="pdfFields"></tbody></table></div>
     </div>
     <div id="tab-overlay" class="hidden">
       <h2>Overlay mapping for flat PDFs</h2>
@@ -134,8 +134,13 @@ main{padding:24px;max-width:1550px;margin:auto}.grid{display:grid;grid-template-
 </main>
 
 <script>
+const SUPABASE_URL = "https://ndazkqehqisahpajewjx.supabase.co";
+const SUPABASE_KEY = "sb_publishable_rhq_cEFdRzLuoWm4hBNNXg_DWJUhNH3";
+const supabaseDb = (window.supabase && SUPABASE_URL.startsWith("https://") && SUPABASE_KEY.startsWith("sb_publishable_"))
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-let state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],fieldRules:{},pageCount:0,detectedSections:[]};
+let state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],pageCount:0,detectedSections:[]};
 const ids=['fullName','dob','address','phone','email','communication','feeAnniversary','pensionAccount','accountName','product','availableCash','bsb','bankAccount','bankAccountName'];
 function log(m){const el=document.getElementById('log'); el.textContent+='\n'+new Date().toLocaleTimeString()+': '+m; el.scrollTop=el.scrollHeight;}
 function val(id){return (document.getElementById(id)?.value||'').trim();}
@@ -282,8 +287,7 @@ async function inspectPdfForm(){
  state.pageCount=pdfDoc.getPageCount();
  const form=pdfDoc.getForm(); state.pdfFields=form.getFields().map(x=>({name:x.getName(),type:x.constructor.name}));
  try{state.detectedSections=await detectPdfSections(state.formBytes); }catch(e){state.detectedSections=[];}
- addPensionHardStopRules();
- renderPdfFields(); updateStats(); updateReadiness(); log(`Form inspected: ${state.pdfFields.length} fillable field(s), ${state.detectedSections.length} section(s) found across ${state.pageCount} page(s).`); loadRulesForCurrentForm(); loadFieldRulesForCurrentForm(); renderQuickRules();
+ renderPdfFields(); updateStats(); updateReadiness(); log(`Form inspected: ${state.pdfFields.length} fillable field(s), ${state.detectedSections.length} section(s) found across ${state.pageCount} page(s).`); loadRulesForCurrentForm(); renderQuickRules();
 }
 
 async function detectPdfSections(ab){
@@ -321,71 +325,9 @@ function suggestedValue(field){
  for(const [needle,id] of pairs){ if(n.includes(needle)) return val(id); }
  return '';
 }
-function dataFieldOptions(selected){
- const keys=Object.keys(dataMap());
- return ['auto','blank'].concat(keys).map(k=>{
-   const label=k==='auto'?'Auto suggested value':(k==='blank'?'Leave blank':k);
-   return `<option value="${k}" ${selected===k?'selected':''}>${label}</option>`;
- }).join('');
-}
-function ensureFieldRule(fieldName){
- if(!state.fieldRules) state.fieldRules={};
- if(!state.fieldRules[fieldName]){
-   state.fieldRules[fieldName]={prefill:true, dataField:'auto'};
- }
- return state.fieldRules[fieldName];
-}
-function setFieldRulePrefill(fieldName, checked){
- const r=ensureFieldRule(fieldName);
- r.prefill=!!checked;
- renderPdfFields();
-}
-function setFieldRuleData(fieldName, dataField){
- const r=ensureFieldRule(fieldName);
- r.dataField=dataField;
- renderPdfFields();
-}
-function setAllFieldRules(prefill){
- (state.pdfFields||[]).forEach(f=>{ensureFieldRule(f.name).prefill=!!prefill;});
- renderPdfFields();
- log((prefill?'All detected PDF fields set to prefill.':'All detected PDF fields set to not prefill.'));
-}
-function fieldRuleValue(fieldName){
- const r=ensureFieldRule(fieldName);
- if(r.prefill===false) return '';
- if(r.dataField && r.dataField!=='auto'){
-   if(r.dataField==='blank') return '';
-   return dataMap()[r.dataField] || '';
- }
- return suggestedValue(fieldName);
-}
-function currentFieldRuleKey(){return 'afpgPdfFieldRules_'+(state.formName||'Uploaded_Form').replace(/[^A-Za-z0-9_. -]/g,'_');}
-function saveFieldRulesForCurrentForm(){
- localStorage.setItem(currentFieldRuleKey(), JSON.stringify(state.fieldRules||{}));
- log('Saved PDF field-level rules for '+(state.formName||'current uploaded form')+'.');
-}
-function loadFieldRulesForCurrentForm(){
- try{
-   const raw=localStorage.getItem(currentFieldRuleKey());
-   state.fieldRules=raw?JSON.parse(raw):{};
-   renderPdfFields();
-   log('Loaded PDF field-level rules for '+(state.formName||'current uploaded form')+'.');
- }catch(e){log('Could not load PDF field-level rules: '+e.message);}
-}
 function renderPdfFields(){
  const body=document.getElementById('pdfFields'); body.innerHTML='';
- state.pdfFields.forEach((f,i)=>{
-   const rule=ensureFieldRule(f.name);
-   const suggested=fieldRuleValue(f.name);
-   body.innerHTML+=`<tr>
-     <td>${i+1}</td>
-     <td><select onchange="setFieldRulePrefill('${escapeAttr(f.name)}', this.value==='yes')"><option value="yes" ${rule.prefill!==false?'selected':''}>Yes</option><option value="no" ${rule.prefill===false?'selected':''}>No</option></select></td>
-     <td class="mono">${escapeHtml(f.name)}</td>
-     <td>${f.type}</td>
-     <td><select onchange="setFieldRuleData('${escapeAttr(f.name)}', this.value)">${dataFieldOptions(rule.dataField||'auto')}</select></td>
-     <td>${rule.prefill===false?'<span class="missing">Will not prefill</span>':escapeHtml(suggested)}</td>
-   </tr>`;
- });
+ state.pdfFields.forEach((f,i)=>{body.innerHTML+=`<tr><td>${i+1}</td><td class="mono">${escapeHtml(f.name)}</td><td>${f.type}</td><td>${escapeHtml(suggestedValue(f.name))}</td></tr>`});
 }
 function dataMap(){return {fullName:val('fullName'),dob:val('dob'),address:val('address'),phone:val('phone'),email:val('email'),communication:val('communication'),feeAnniversary:val('feeAnniversary'),pensionAccount:val('pensionAccount'),accountName:val('accountName')||val('fullName'),product:val('product'),availableCash:val('availableCash'),bsb:val('bsb'),bankAccount:val('bankAccount'),bankAccountName:val('bankAccountName')||val('fullName')}}
 function loadMacquariePensionPreset(){
@@ -439,57 +381,7 @@ function renderQuickRules(forceMacq=false){
  secBody.innerHTML=sections.map(s=>{const a=actionForSection(s.section); return `<tr><td><b>${escapeHtml(s.section)}</b></td><td>${s.page}</td><td><select onchange="setQuickRule('${escapeAttr(s.section)}',${s.page},${s.x},${s.y},this.value)"><option value="yes" ${a==='yes'?'selected':''}>Yes - complete if needed</option><option value="blank" ${a==='blank'?'selected':''}>No - leave blank / ignore</option><option value="na" ${a==='na'?'selected':''}>No - write N/A</option></select></td><td>${a==='yes'?'No rule applied':(a==='na'?'N/A will be written':'Nothing will be written')}</td></tr>`}).join('');
  const pc=state.pageCount||9; pageBody.innerHTML=Array.from({length:pc},(_,i)=>{const page=i+1, section='PAGE '+page+' - DO NOT COMPLETE'; const a=actionForSection(section); return `<tr><td><b>Page ${page}</b></td><td><select onchange="setQuickRule('${section}',${page},40,760,this.value)"><option value="yes" ${a==='yes'?'selected':''}>Yes - complete this page</option><option value="blank" ${a==='blank'?'selected':''}>No - leave page blank / ignore</option><option value="na" ${a==='na'?'selected':''}>No - write N/A on page</option></select></td><td>${a==='yes'?'No rule applied':(a==='na'?'N/A will be written near top of page':'Overlay writing to this page will be skipped')}</td></tr>`}).join('');
 }
-function isPensionUpdateForm(){
- const haystack=[
-   state.formName||'',
-   (state.detectedSections||[]).map(s=>s.section||'').join(' '),
-   (state.pdfFields||[]).map(f=>f.name||'').join(' ')
- ].join(' ').toLowerCase();
- return /pension\s*update|update\s*pension|macquarie.*pension|pension.*macquarie/.test(haystack);
-}
-const PENSION_UPDATE_HARD_STOP_PAGES=[2,3,4,5,6];
-function pensionHardStopPage(page){return isPensionUpdateForm() && PENSION_UPDATE_HARD_STOP_PAGES.includes(+page);}
-function pageIsIgnored(page){
- if(pensionHardStopPage(page)) return true;
- return (state.rules||[]).some(r=>r.action==='ignore' && String(r.section||'').startsWith('PAGE '+page+' - DO NOT COMPLETE'));
-}
-function addPensionHardStopRules(){
- if(!isPensionUpdateForm()) return;
- state.rules=(state.rules||[]).filter(r=>!/^PAGE [2-6] - DO NOT COMPLETE/.test(String(r.section||'')));
- PENSION_UPDATE_HARD_STOP_PAGES.forEach(page=>{
-   state.rules.push({section:'PAGE '+page+' - DO NOT COMPLETE',action:'ignore',page,x:40,y:760,w:90,customText:''});
- });
- log('Pension Update hard-stop applied: pages 2, 3, 4, 5 and 6 will not be completed.');
-}
-function getFieldPages(field,pdfDoc){
- const pages=pdfDoc.getPages();
- const out=[];
- try{
-   const widgets=field.acroField && field.acroField.getWidgets ? field.acroField.getWidgets() : [];
-   widgets.forEach(w=>{
-     let pref=null;
-     try{ pref=w.P ? w.P() : null; }catch(e){}
-     if(pref){
-       const idx=pages.findIndex(p=>String(p.ref)===String(pref));
-       if(idx>=0) out.push(idx+1);
-     }
-   });
- }catch(e){}
- return [...new Set(out)];
-}
-function fieldIsOnIgnoredPage(field,pdfDoc){
- const pages=getFieldPages(field,pdfDoc);
- return pages.length && pages.some(pageIsIgnored);
-}
-function clearIgnoredPageFieldValues(pdfDoc,form){
- try{
-   form.getFields().forEach(field=>{
-     if(!fieldIsOnIgnoredPage(field,pdfDoc)) return;
-     try{ if(field.setText) field.setText(''); }catch(e){}
-     try{ if(field.uncheck) field.uncheck(); }catch(e){}
-   });
- }catch(e){}
-}
+function pageIsIgnored(page){return (state.rules||[]).some(r=>r.action==='ignore' && String(r.section||'').startsWith('PAGE '+page+' - DO NOT COMPLETE'));}
 function overlayIsBlocked(row){
  if(pageIsIgnored(row.page||1)) return true;
  return (state.rules||[]).some(r=>r.action==='ignore' && !String(r.section||'').startsWith('PAGE ') && String(row.label||'').toLowerCase().includes(String(r.section||'').split(' ')[0].toLowerCase()));
@@ -533,7 +425,7 @@ function drawDigitsIntoBoxes(page, text, x, y, boxW, count, font, size){
 function applyDirectDebitBankDetails(pdfDoc, form, font, size){
  const fieldNames=(state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
  const looksLikeDirectDebit=/direct debit/i.test(state.formName||'') || /CMA DDR 3Branch BSB/i.test(fieldNames) || /bankacc/i.test(fieldNames);
- if(!looksLikeDirectDebit || isPensionUpdateForm()) return;
+ if(!looksLikeDirectDebit) return;
  const bsb=cleanBsb();
  const bsb1=bsb.slice(0,3);
  const bsb2=bsb.slice(3,6);
@@ -559,7 +451,7 @@ function applyDirectDebitDefaults(pdfDoc, form, font, size){
  // B. Frequency of request = One-off contribution, date to be deducted
  const fieldNames = (state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
  const looksLikeDirectDebit = /direct debit/i.test(state.formName||'') || /\bType request\b/i.test(fieldNames) || /\bFirst dependent 11\b/i.test(fieldNames);
- if(!looksLikeDirectDebit || isPensionUpdateForm()) return;
+ if(!looksLikeDirectDebit) return;
  let usedFormFields=false;
  try{ form.getRadioGroup('Type request').select('1'); usedFormFields=true; }catch(e){}
  try{ form.getRadioGroup('First dependent 11').select('1'); usedFormFields=true; }catch(e){}
@@ -595,10 +487,9 @@ async function generatePdf(){
    try{
      const form=pdfDoc.getForm();
      autoFont=await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-     form.getFields().forEach(field=>{if(fieldIsOnIgnoredPage(field,pdfDoc)) return; const nm=field.getName(); const rule=ensureFieldRule(nm); if(rule.prefill===false) return; const sv=fieldRuleValue(nm); if(!sv) return; try{ if(field.setText) field.setText(sv); }catch(e){} });
+     form.getFields().forEach(field=>{const nm=field.getName(); const sv=suggestedValue(nm); if(!sv) return; try{ if(field.setText) field.setText(sv); }catch(e){} });
      applyDirectDebitDefaults(pdfDoc, form, autoFont, autoSize);
      applyDirectDebitBankDetails(pdfDoc, form, autoFont, autoSize);
-     clearIgnoredPageFieldValues(pdfDoc,form);
      try{form.updateFieldAppearances();}catch(e){}
    }catch(e){log('No fillable field layer available.');}
  }
@@ -620,9 +511,75 @@ async function saveFormReserve(){
  const ab=await f.arrayBuffer(); const key='afpgFormReserve_'+f.name; localStorage.setItem(key, arrayBufferToBase64(ab)); loadReserveList(); log('Saved form to this browser reserve: '+f.name);
 }
 function loadReserveList(){const sel=document.getElementById('reserveSelect'); sel.innerHTML='<option value="">No saved form selected</option>'; Object.keys(localStorage).filter(k=>k.startsWith('afpgFormReserve_')).forEach(k=>{const name=k.replace('afpgFormReserve_',''); sel.innerHTML+=`<option value="${escapeAttr(k)}">${escapeHtml(name)}</option>`});}
-function loadTemplateList(){const sel=document.getElementById('templateSelect'); if(!sel) return; sel.innerHTML='<option value="">No saved template selected</option>'; Object.keys(localStorage).filter(k=>k.startsWith('afpgFormTemplate_')).forEach(k=>{const name=k.replace('afpgFormTemplate_',''); sel.innerHTML+=`<option value="${escapeAttr(k)}">${escapeHtml(name)}</option>`});}
-function saveCurrentAsTemplate(){if(!state.formBytes){alert('Upload/inspect the blank PDF first.');return;} const key=currentTemplateKey(); const pack={formName:state.formName,formBytes:arrayBufferToBase64(state.formBytes),rules:state.rules||[],fieldRules:state.fieldRules||{},overlay:state.overlay||[],detectedSections:state.detectedSections||[],pageCount:state.pageCount||0}; localStorage.setItem(key,JSON.stringify(pack)); loadTemplateList(); log('Saved full template: '+state.formName+' with '+pack.rules.length+' rule(s) and '+pack.overlay.length+' overlay mapping(s).');}
-function loadTemplate(){const k=document.getElementById('templateSelect').value; if(!k)return; try{const pack=JSON.parse(localStorage.getItem(k)); state.formName=pack.formName||k.replace('afpgFormTemplate_',''); state.formBytes=base64ToArrayBuffer(pack.formBytes); state.rules=pack.rules||[]; state.fieldRules=pack.fieldRules||{}; state.overlay=pack.overlay||[]; state.detectedSections=pack.detectedSections||[]; state.pageCount=pack.pageCount||0; inspectPdfForm().then(()=>{state.rules=pack.rules||[]; state.fieldRules=pack.fieldRules||{}; state.overlay=pack.overlay||[]; state.detectedSections=pack.detectedSections||state.detectedSections||[]; renderRuleRows(); renderQuickRules(); renderOverlayRows(); updateStats(); log('Loaded full template: '+state.formName);}); }catch(e){log('Could not load template: '+e.message);}}
+async function loadTemplateList(){
+ const sel=document.getElementById('templateSelect'); 
+ if(!sel) return; 
+ sel.innerHTML='<option value="">No saved template selected</option>';
+
+ if(!supabaseDb){
+   sel.innerHTML += '<option value="">Supabase not configured</option>';
+   return;
+ }
+
+ const { data, error } = await supabaseDb
+   .from('afpg_form_templates')
+   .select('*')
+   .order('template_name', { ascending: true });
+
+ if(error){
+   log('Supabase template load failed: '+error.message);
+   alert('Supabase template load failed: '+error.message);
+   return;
+ }
+
+ window.sharedTemplates = data || [];
+ window.sharedTemplates.forEach(row=>{
+   sel.innerHTML += `<option value="${escapeAttr(row.id)}">${escapeHtml(row.template_name || row.form_name || 'Unnamed template')}</option>`;
+ });
+ log('Loaded '+window.sharedTemplates.length+' shared template(s) from Supabase.');
+}
+async async function saveCurrentAsTemplate() {
+ if (!state.formBytes) { alert('Upload/inspect the blank PDF first.'); return; }
+ if (!supabaseDb) { alert('Supabase is not connected.'); return; }
+ const templateName = state.formName || 'Uploaded Form';
+ const pack = {
+   template_name: templateName,
+   form_name: state.formName || templateName,
+   form_bytes: arrayBufferToBase64(state.formBytes),
+   rules: state.rules || [],
+   overlay: state.overlay || [],
+   detected_sections: state.detectedSections || [],
+   page_count: state.pageCount || 0
+ };
+ const { error } = await supabaseDb
+   .from('afpg_form_templates')
+   .upsert(pack, { onConflict: 'template_name' });
+ if (error) { log('Supabase save failed: ' + error.message); alert('Supabase save failed: ' + error.message); return; }
+ await loadTemplateList();
+ log('Saved shared template to Supabase: ' + templateName);
+ alert('Template saved to shared Supabase library.');
+}
+function loadTemplate() {
+ const id = document.getElementById('templateSelect').value;
+ if (!id) return;
+ const pack = (window.sharedTemplates || []).find(x => x.id === id);
+ if (!pack) { alert('Template not found. Click Refresh lists and try again.'); return; }
+ state.formName = pack.form_name || pack.template_name || 'Uploaded Form';
+ state.formBytes = base64ToArrayBuffer(pack.form_bytes);
+ state.rules = pack.rules || [];
+ state.overlay = pack.overlay || [];
+ state.detectedSections = pack.detected_sections || [];
+ state.pageCount = pack.page_count || 0;
+ inspectPdfForm().then(() => {
+   state.rules = pack.rules || [];
+   state.overlay = pack.overlay || [];
+   state.detectedSections = pack.detected_sections || state.detectedSections || [];
+   state.pageCount = pack.page_count || state.pageCount || 0;
+   renderRuleRows(); renderQuickRules(); renderOverlayRows(); updateStats();
+   log('Loaded shared template from Supabase: ' + state.formName);
+   alert('Shared template loaded.');
+ });
+}
 function loadReservedForm(){const k=document.getElementById('reserveSelect').value; if(!k)return; state.formBytes=base64ToArrayBuffer(localStorage.getItem(k)); state.formName=k.replace('afpgFormReserve_',''); inspectPdfForm(); setTimeout(loadRulesForCurrentForm,200);}
 function arrayBufferToBase64(buffer){let binary=''; const bytes=new Uint8Array(buffer); for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]); return btoa(binary);}function base64ToArrayBuffer(base64){const binary=atob(base64); const bytes=new Uint8Array(binary.length); for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i); return bytes.buffer;}
 function updateStats(){
@@ -635,7 +592,7 @@ function updateReadiness(){
 }
 function showTab(name){['status','fields','overlay','rules','raw'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('hidden',t!==name)}); document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['status','fields','overlay','rules','raw'][i]===name));}
 function escapeHtml(s){return String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;')}
-function clearAll(){ids.forEach(id=>document.getElementById(id).value=''); state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],fieldRules:{},pageCount:0,detectedSections:[]}; document.getElementById('factPreview').textContent=''; document.getElementById('acctPreview').textContent=''; document.getElementById('pdfFields').innerHTML=''; document.getElementById('overlayRows').innerHTML=''; if(document.getElementById('ruleRows')) document.getElementById('ruleRows').innerHTML=''; document.getElementById('log').textContent='Cleared.'; updateStats();}
+function clearAll(){ids.forEach(id=>document.getElementById(id).value=''); state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],pageCount:0,detectedSections:[]}; document.getElementById('factPreview').textContent=''; document.getElementById('acctPreview').textContent=''; document.getElementById('pdfFields').innerHTML=''; document.getElementById('overlayRows').innerHTML=''; if(document.getElementById('ruleRows')) document.getElementById('ruleRows').innerHTML=''; document.getElementById('log').textContent='Cleared.'; updateStats();}
 ids.forEach(id=>document.addEventListener('input',e=>{if(e.target && e.target.id===id) updateStats()})); loadReserveList(); loadTemplateList(); renderRuleRows(); renderQuickRules(); updateStats();
 </script>
 </body>
