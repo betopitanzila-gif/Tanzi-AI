@@ -538,7 +538,7 @@ async function loadTemplateList(){
  });
  log('Loaded '+window.sharedTemplates.length+' shared template(s) from Supabase.');
 }
-async async function saveCurrentAsTemplate() {
+async function saveCurrentAsTemplate() {
  if (!state.formBytes) { alert('Upload/inspect the blank PDF first.'); return; }
  if (!supabaseDb) { alert('Supabase is not connected.'); return; }
  const templateName = state.formName || 'Uploaded Form';
