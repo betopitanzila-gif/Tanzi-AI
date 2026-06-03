@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AFPG Form Autofill Rules + Template Dashboard v13</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#d9e0ea;--brand:#143c7d;--brand2:#0e766e;--warn:#b54708;--bad:#b42318;--good:#027a48;--soft:#eef4ff;}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#0c2f66,#0e766e);color:#fff;padding:26px 32px}.title{font-size:28px;font-weight:900;margin:0}.subtitle{margin:8px 0 0;color:#e7edf7;line-height:1.4;max-width:1200px}
+main{padding:24px;max-width:1550px;margin:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 22px rgba(16,24,40,.06);padding:18px;margin-bottom:18px}.card h2{font-size:18px;margin:0 0 12px}.card h3{font-size:15px;margin:14px 0 8px}.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}label{font-size:12px;font-weight:800;color:#344054}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff}textarea{min-height:76px;resize:vertical}.upload{border:2px dashed #b7c4d6;border-radius:16px;padding:18px;text-align:center;background:#fbfdff}.upload input{border:none;padding:6px}.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer;background:var(--brand);color:#fff}.btn.secondary{background:#475467}.btn.green{background:var(--brand2)}.btn.light{background:#eef4ff;color:#143c7d}.btn.red{background:#b42318}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;background:#eef4ff;color:#143c7d}.pill.good{background:#ecfdf3;color:var(--good)}.pill.warn{background:#fffaeb;color:var(--warn)}.pill.bad{background:#fef3f2;color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.kpi{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px}.kpi b{font-size:22px}.kpi span{display:block;font-size:12px;color:var(--muted);margin-top:3px}.mini{font-size:12px;color:var(--muted);line-height:1.45}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#f8fafc;font-size:12px;color:#344054;position:sticky;top:0}tr:last-child td{border-bottom:0}.found{color:var(--good);font-weight:900}.missing{color:var(--bad);font-weight:900}.log{background:#101828;color:#d0d5dd;border-radius:14px;padding:12px;min-height:125px;max-height:270px;overflow:auto;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900;cursor:pointer}.tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}.hidden{display:none}.mapGrid{display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr .8fr 70px;gap:8px;align-items:end}.smallBtn{padding:8px 10px;border-radius:10px;font-size:12px}.footerNote{padding:14px;border-radius:14px;background:#fffaeb;border:1px solid #fedf89;color:#7a2e0e}.mono{font-family:Consolas,monospace;font-size:12px}.preview{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px;white-space:pre-wrap;max-height:280px;overflow:auto}.full{grid-column:1/-1}.checklist li{margin:7px 0}.ok{color:var(--good);font-weight:800}.warnText{color:var(--warn);font-weight:800}@media(max-width:950px){.grid,.row,.row3,.kpis{grid-template-columns:1fr}.mapGrid{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header><h1 class="title">AFPG Form Autofill Rules + Template Dashboard v13</h1><p class="subtitle">Upload the client Fact Find, Macquarie Account Details/Portfolio report and a client form. This version reads DOCX Fact Finds, Macquarie portfolio/super reports and blank PDF forms. It detects sections from the uploaded form, gives a Yes/No rule grid for each section/page, separates provider account numbers from bank BSB/account numbers, supports overlay writing for flat PDFs, and saves the whole setup as a reusable template. Direct Debit forms now auto-tick “Set-up a new plan” and “One-off contribution”, split the 6-digit BSB into the separated BSB boxes, prevent duplicate overlay text on fillable bank fields, AFPG Withdrawal forms now default to overlay-only completion with corrected visible-box coordinates, and form-specific overlays are isolated so Withdrawal mappings cannot write onto Direct Debit forms.</p></header>
+<main>
+<section class="card">
+  <div class="kpis">
+    <div class="kpi"><b id="kpiClient">0</b><span>Client fields found</span></div>
+    <div class="kpi"><b id="kpiAcct">0</b><span>Account fields found</span></div>
+    <div class="kpi"><b id="kpiBank">0</b><span>Bank fields found</span></div>
+    <div class="kpi"><b id="kpiForm">0</b><span>PDF fields detected</span></div>
+    <div class="kpi"><b id="kpiOverlay">0</b><span>Overlay mappings active</span></div>
+  </div>
+</section>
+
+<div class="grid">
+<section>
+  <div class="card">
+    <h2>1. Upload source documents</h2>
+    <div class="row">
+      <div class="upload"><b>Client Fact Find</b><p class="mini">DOCX, PDF or TXT. DOCX tables are now supported.</p><input id="factFile" type="file" accept=".docx,.pdf,.txt,.text" /></div>
+      <div class="upload"><b>Account Details / Portfolio Report</b><p class="mini">PDF, TXT or CSV. The dashboard scans all pages for account/bank details.</p><input id="acctFile" type="file" accept=".pdf,.txt,.text,.csv" /></div>
+    </div>
+    <div class="btns"><button class="btn" onclick="processSources()">Read documents</button><button class="btn secondary" onclick="clearAll()">Clear dashboard</button></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Extracted client details</h2>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field full"><label>Choose client from Fact Find</label><select id="clientPicker" onchange="applySelectedClient()"><option value="">Auto-detected client / manual entry</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Full name</label><input id="fullName"></div>
+      <div class="field"><label>Date of birth</label><input id="dob"></div>
+      <div class="field full"><label>Residential/postal address</label><input id="address"></div>
+      <div class="field"><label>Preferred phone</label><input id="phone"></div>
+      <div class="field"><label>Email</label><input id="email"></div>
+      <div class="field"><label>Communication preference</label><input id="communication"></div>
+      <div class="field"><label>Fee consent anniversary</label><input id="feeAnniversary"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Extracted account and bank details</h2>
+    <div class="row">
+      <div class="field"><label>Pension account number</label><input id="pensionAccount"></div>
+      <div class="field"><label>Account name</label><input id="accountName"></div>
+      <div class="field"><label>Product</label><input id="product"></div>
+      <div class="field"><label>Available cash</label><input id="availableCash"></div>
+      <div class="field"><label>Withdrawal amount / instruction</label><input id="withdrawalAmount" placeholder="e.g. Full withdrawal or $10,000"></div>
+      <div class="field"><label>BSB</label><input id="bsb"></div>
+      <div class="field"><label>Bank account number</label><input id="bankAccount"></div>
+      <div class="field full"><label>Bank account name / institution</label><input id="bankAccountName"></div>
+    </div>
+    <p class="mini">Tip: always review extracted BSB/account numbers before generating the form.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Upload blank form / choose reserve form</h2>
+    <div class="upload"><b>Blank PDF form</b><p class="mini">Fillable PDF fields will be populated by field name. Flat PDFs can be completed using overlay mapping.</p><input id="formFile" type="file" accept=".pdf" /></div>
+    <div class="btns"><button class="btn" onclick="inspectPdfForm()">Inspect form fields</button><button class="btn light" onclick="saveFormReserve()">Save blank form only</button><button class="btn green" onclick="saveCurrentAsTemplate()">Save as template</button><button class="btn light" onclick="loadReserveList();loadTemplateList()">Refresh lists</button><button class="btn light" onclick="loadRulesForCurrentForm()">Load form rules</button></div>
+    <div class="row" style="margin-top:12px"><div class="field"><label>Saved blank forms</label><select id="reserveSelect" onchange="loadReservedForm()"><option value="">No saved form selected</option></select></div><div class="field"><label>Saved templates</label><select id="templateSelect" onchange="loadTemplate()"><option value="">No saved template selected</option></select></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <div class="tabs"><button class="tab active" onclick="showTab('status')">Status</button><button class="tab" onclick="showTab('fields')">PDF Fields</button><button class="tab" onclick="showTab('overlay')">Overlay Mapping</button><button class="tab" onclick="showTab('rules')">Form Rules</button><button class="tab" onclick="showTab('raw')">Raw Text</button></div>
+    <div id="tab-status">
+      <h2>Readiness check</h2>
+      <ul class="checklist" id="readiness"></ul>
+      <div class="footerNote"><b>Why v1 failed:</b> the Fact Find was a DOCX table, the Macquarie details were deeper in the report, and the Pension Update form is likely a flat PDF or has limited field names. v3 fixes this by adding DOCX parsing, full-PDF scanning and overlay writing.</div>
+      <h3>Activity log</h3><div class="log" id="log">Ready.</div>
+    </div>
+    <div id="tab-fields" class="hidden">
+      <h2>Easy page / section rules</h2>
+      <p class="mini">Use this simple Yes/No area to tell the dashboard which sections/pages to complete or ignore. The dashboard first reads sections from the uploaded PDF form. Choose <b>No - leave blank</b> to avoid the section, or <b>No - write N/A</b> to place N/A on that section. These settings save with the template.</p>
+      <div class="btns"><button class="btn light" onclick="addDetectedOrMacquarieSections()">Read form sections / use preset</button><button class="btn light" onclick="renderQuickRules()">Refresh Yes/No list</button><button class="btn light" onclick="saveRulesForCurrentForm()">Save rules for this form</button></div>
+      <h3>Sections</h3>
+      <div class="tableWrap"><table><thead><tr><th>Section</th><th>Page</th><th>Complete this section?</th><th>What to do if No</th></tr></thead><tbody id="quickSectionRows"></tbody></table></div>
+      <h3>Pages</h3>
+      <div class="tableWrap"><table><thead><tr><th>Page</th><th>Complete this page?</th><th>What to do if No</th></tr></thead><tbody id="quickPageRows"></tbody></table></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+      <h2>Detected PDF form fields</h2>
+      <p class="mini">If this table is empty, the PDF is flat/non-fillable. Use overlay mapping instead.</p>
+      <div class="tableWrap"><table><thead><tr><th>#</th><th>Field name</th><th>Type</th><th>Suggested value</th></tr></thead><tbody id="pdfFields"></tbody></table></div>
+    </div>
+    <div id="tab-overlay" class="hidden">
+      <h2>Overlay mapping for flat PDFs</h2>
+      <p class="mini">Use this when the PDF has no fillable fields. Coordinates use PDF points from the bottom-left. The Macquarie Pension Update and AFPG Withdrawal presets are included.</p>
+      <div class="btns"><button class="btn light" onclick="loadMacquariePensionPreset()">Load Macquarie Pension Update preset</button><button class="btn light" onclick="loadAfpgWithdrawalPreset()">Load AFPG Withdrawal preset</button><button class="btn light" onclick="addOverlayRow()">Add mapping row</button><button class="btn red" onclick="clearOverlayRows()">Clear mapping</button></div>
+      <div id="overlayRows" style="margin-top:12px"></div>
+    </div>
+    <div id="tab-rules" class="hidden">
+      <h2>Rules for this form</h2>
+      <p class="mini">Use this to save instructions for each stored form or currently uploaded form. Examples: ignore Section 2A Rollover from another fund, write N/A in Section 3A, or write custom text in a nominated spot. These rules are saved in this browser against the form name.</p>
+      <div class="btns"><button class="btn light" onclick="addRuleRow()">Add rule</button><button class="btn light" onclick="saveRulesForCurrentForm()">Save rules for this form</button><button class="btn light" onclick="loadRulesForCurrentForm()">Load saved rules</button><button class="btn red" onclick="clearRuleRows()">Clear rules</button></div>
+      <div class="footerNote" style="margin-top:12px"><b>Note:</b> “Ignore” means the dashboard will not write anything to that section. “Write N/A” and “Custom text” use overlay coordinates, so you can place the text exactly where the form needs it.</div>
+      <div id="ruleRows" style="margin-top:12px"></div>
+    </div>
+    <div id="tab-raw" class="hidden">
+      <h2>Raw parsed text</h2>
+      <h3>Fact Find</h3><div id="factPreview" class="preview"></div>
+      <h3>Account report</h3><div id="acctPreview" class="preview"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. Generate partially completed form</h2>
+    <div class="row">
+      <div class="field"><label>Output method</label><select id="outputMode"><option value="auto">Auto: fill fields + overlay mappings</option><option value="fields">Fill PDF fields only</option><option value="overlay">Overlay only</option></select></div>
+      <div class="field"><label>Font size</label><input id="fontSize" type="number" value="9" min="6" max="14"></div>
+    </div>
+    <div class="btns"><button class="btn green" onclick="generatePdf()">Download partially completed PDF</button><button class="btn secondary" onclick="downloadDataSummary()">Download data summary</button></div>
+    <p class="mini">Important: this produces a partially completed form only. Review all details before sending to the client for signature.</p>
+  </div>
+</section>
+</div>
+</main>
+
+<script>
+const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
+const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+const supabaseDb = (window.supabase && SUPABASE_URL.startsWith("https://") && SUPABASE_KEY.startsWith("sb_publishable_"))
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],pageCount:0,detectedSections:[]};
+const ids=['fullName','dob','address','phone','email','communication','feeAnniversary','pensionAccount','accountName','product','availableCash','withdrawalAmount','withdrawalReason','bankInstitution','bsb','bankAccount','bankAccountName'];
+function log(m){const el=document.getElementById('log'); el.textContent+='\n'+new Date().toLocaleTimeString()+': '+m; el.scrollTop=el.scrollHeight;}
+function val(id){return (document.getElementById(id)?.value||'').trim();}
+function setVal(id,v){if(v && document.getElementById(id) && !val(id)) document.getElementById(id).value=clean(v);}
+function forceVal(id,v){if(document.getElementById(id)) document.getElementById(id).value=clean(v||'');}
+function clean(s){return String(s||'').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').replace(/\n\s+/g,'\n').trim();}
+function lines(t){return clean(t).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);}
+async function readAnyFile(file){
+ if(!file) return '';
+ const name=file.name.toLowerCase();
+ if(name.endsWith('.docx')){
+   const ab=await file.arrayBuffer();
+   const result=await mammoth.extractRawText({arrayBuffer:ab});
+   return result.value||'';
+ }
+ if(name.endsWith('.pdf')) return await readPdfText(await file.arrayBuffer());
+ return await file.text();
+}
+async function readPdfText(ab){
+ const pdf=await pdfjsLib.getDocument({data:ab}).promise; let out=[];
+ for(let p=1;p<=pdf.numPages;p++){
+   const page=await pdf.getPage(p); const tc=await page.getTextContent();
+   const items=tc.items.map(i=>i.str).join(' ');
+   out.push(`\n--- PAGE ${p} ---\n`+items);
+ }
+ return out.join('\n');
+}
+function regex(t,patterns){for(const p of patterns){const m=t.match(p); if(m) return clean(m[1]||m[0]);} return '';}
+function valueAfterLabel(t,label){
+ const arr=lines(t); const re=new RegExp('^'+label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*:?' ,'i');
+ for(let i=0;i<arr.length;i++){
+   if(re.test(arr[i])){
+     const same=arr[i].replace(re,'').trim();
+     if(same) return same;
+     for(let j=i+1;j<Math.min(i+5,arr.length);j++){ if(arr[j] && !/^(Tim|Client|Name)$/i.test(arr[j])) return arr[j]; }
+   }
+ }
+ return '';
+}
+function parseClientCandidates(t){
+ const arr=lines(t), candidates=[];
+ for(let i=0;i<arr.length;i++){
+   if(/^Name\s*:?$/i.test(arr[i]) && arr[i+1] && !/^(Tim|Client|Client 1|Client 2)$/i.test(arr[i+1])){
+     const name=arr[i+1];
+     if(!/[A-Za-z]+\s+[A-Za-z]+/.test(name)) continue;
+     const win=arr.slice(i, Math.min(arr.length,i+45)).join('\n');
+     const c={name, dob:'', address:'', phone:'', email:''};
+     c.dob=regex(win,[/Date of Birth\s*\n\s*([0-3]?\d\/[01]?\d\/\d{4})/i,/Date of Birth\s+([0-3]?\d\/[01]?\d\/\d{4})/i]);
+     c.address=regex(win,[/Address \(residential\/postal preferred\)\s*\n\s*([\s\S]+?)(?:\n\s*If less than|\n\s*Preferred phone|\n\s*Preferred email)/i]);
+     c.phone=regex(win,[/Preferred phone\*?\s*\n\s*(04\d{2}\s?\d{3}\s?\d{3}(?:[^\n]*)?)/i,/(04\d{2}\s?\d{3}\s?\d{3}(?:[^\n]*)?)/i]);
+     c.email=regex(win,[/Preferred email address\*\*?\s*\n\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
+     if(!candidates.some(x=>x.name.toLowerCase()===c.name.toLowerCase())) candidates.push(c);
+   }
+ }
+ return candidates;
+}
+function renderClientPicker(){
+ const sel=document.getElementById('clientPicker'); if(!sel) return;
+ sel.innerHTML='<option value="">Auto-detected client / manual entry</option>';
+ state.clients.forEach((c,i)=>{sel.innerHTML+=`<option value="${i}">${escapeHtml(c.name)}${c.dob?' - DOB '+escapeHtml(c.dob):''}</option>`});
+}
+function applySelectedClient(){
+ const sel=document.getElementById('clientPicker'); if(!sel || sel.value==='') return;
+ const c=state.clients[+sel.value]; if(!c) return;
+ forceVal('fullName',c.name); forceVal('dob',c.dob); forceVal('address',c.address); forceVal('phone',c.phone); forceVal('email',c.email);
+ log('Selected client applied: '+c.name); updateStats(); renderOverlayRows();
+}
+function parseFactFind(t){
+ state.clients=parseClientCandidates(t); renderClientPicker();
+ if(state.clients.length){
+   const c=state.clients[0];
+   setVal('fullName',c.name); setVal('dob',c.dob); setVal('address',c.address); setVal('phone',c.phone); setVal('email',c.email);
+ }
+ if(!val('fullName')) setVal('fullName', valueAfterLabel(t,'Name') || regex(t,[/Name\s+([A-Z][A-Za-z' -]+\s+[A-Z][A-Za-z' -]+)/i]));
+ if(!val('dob')) setVal('dob', valueAfterLabel(t,'Date of Birth') || regex(t,[/Date of Birth\s+([0-3]?\d\/[01]?\d\/\d{4})/i]));
+ if(!val('address')) setVal('address', valueAfterLabel(t,'Address (residential/postal preferred)') || regex(t,[/Address \(residential\/postal preferred\)\s+(.+?)(?:If less than|Preferred phone|\n\s*Preferred)/is]));
+ if(!val('phone')) setVal('phone', valueAfterLabel(t,'Preferred phone') || regex(t,[/(04\d{2}\s?\d{3}\s?\d{3})/]));
+ if(!val('email')) setVal('email', valueAfterLabel(t,'Preferred email address') || regex(t,[/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]));
+ setVal('communication', valueAfterLabel(t,'Communication Delivery Preference (Electronic/Mail)'));
+ setVal('feeAnniversary', valueAfterLabel(t,'Fee Consent Anniversary'));
+ // Macquarie Wrap/Pension account number in Fact Find datafeed. This is NOT the bank account number.
+ setVal('pensionAccount', regex(t,[(/\b(8\d{8})\b\s*\(Macq Wrap\).*?MR/i),(/\b(\d{9})\b\s*\(Macq Wrap\)/i)]));
+ const product=valueAfterLabel(t,'Provider'); if(product && /Macquarie|Pension|Super/i.test(product)) setVal('product', product);
+}
+function extractBankPair(t){
+ const arr=lines(t);
+ // Highest confidence: Pension summary block with "BSB | Account" followed by NNN-NNN | account number.
+ for(let i=0;i<arr.length;i++){
+   if(/BSB\s*\|\s*Account/i.test(arr[i])){
+     for(let j=i+1;j<Math.min(arr.length,i+6);j++){
+       const m=arr[j].match(/(\d{3}[-\s]?\d{3})\s*\|?\s*(\d{6,12})/);
+       if(m) return {bsb:m[1].replace(/\s+/g,'-'), account:m[2]};
+     }
+   }
+ }
+ // Labels may be separated across nearby extracted text lines.
+ for(let i=0;i<arr.length;i++){
+   if(/^BSB$/i.test(arr[i]) || /BSB\s*(number)?/i.test(arr[i])){
+     const window=arr.slice(i, i+10).join(' ');
+     const m=window.match(/(\d{3}[-\s]?\d{3}).{0,30}?(\d{6,12})/);
+     if(m) return {bsb:m[1].replace(/\s+/g,'-'), account:m[2]};
+   }
+ }
+ // Last resort: only accept a BSB/account pair when a nearby heading mentions pension summary, bank, BSB or payment.
+ for(let i=0;i<arr.length;i++){
+   const m=arr[i].match(/(\d{3}[-\s]\d{3})\s*\|?\s*(\d{6,12})/);
+   if(m){
+     const context=arr.slice(Math.max(0,i-5), Math.min(arr.length,i+5)).join(' ');
+     if(/pension summary|recurring payment|payment frequency|BSB|bank|financial institution/i.test(context)) return {bsb:m[1].replace(/\s+/g,'-'), account:m[2]};
+   }
+ }
+ return null;
+}
+function extractPensionAccount(t){
+ // Macquarie account number appears with Account on the cover/header or "Account NAME | 802...".
+ return regex(t,[/Portfolio Review\s+[A-Z][A-Z\s,'-]+\s+Account\s+(8\d{8})/i,/Account\s+([A-Z][A-Z\s,'-]+?)\s*\|\s*(8\d{8})/i,/\bAccount\s+(8\d{8})\b/i,/\b(8\d{8})\b\s*\(Macq Wrap\)/i]);
+}
+function parseAccountReport(t){
+ const pension=extractPensionAccount(t);
+ if(pension) setVal('pensionAccount',pension);
+ setVal('accountName', regex(t,[/Account\s+([A-Z][A-Z\s,'-]+?)\s*\|\s*8\d{8}/,/Portfolio Review\s+([A-Z][A-Z\s,'-]+?)\s+Account/i,/Account name\s+([A-Z][A-Za-z\s,'-]+?)(?:\n|BSB|Account number)/i]));
+ setVal('product', regex(t,[/Product\s+(.+?)(?:Issued|\$|\n|Available|Managed)/i]));
+ setVal('availableCash', regex(t,[/Available cash\s+\$?([\d,]+\.\d{2})/i]));
+ const bank=extractBankPair(t);
+ if(bank){ setVal('bsb',bank.bsb); setVal('bankAccount',bank.account); }
+ setVal('bankAccountName', regex(t,[/Pension summary[\s\S]{0,150}?Account name\s+(.+?)(?:\n|BSB\s*\|\s*Account)/i,/Australian financial institution name:?\s*(.+?)(?:BSB|\n)/i]));
+}
+async function processSources(){
+ document.getElementById('log').textContent='Reading documents...';
+ try{
+   const fact=document.getElementById('factFile').files[0]; const acct=document.getElementById('acctFile').files[0];
+   state.factText=await readAnyFile(fact); state.acctText=await readAnyFile(acct);
+   document.getElementById('factPreview').textContent=state.factText.slice(0,12000);
+   document.getElementById('acctPreview').textContent=state.acctText.slice(0,12000);
+   parseFactFind(state.factText); parseAccountReport(state.acctText); parseAccountReport(state.factText);
+   log('Documents read and parsed.'); updateStats(); updateReadiness(); renderOverlayRows();
+ }catch(e){log('ERROR reading documents: '+e.message);}
+}
+async function inspectPdfForm(){
+ const f=document.getElementById('formFile').files[0];
+ if(!f && !state.formBytes){alert('Upload or select a PDF form first.'); return;}
+ if(f){state.formBytes=await f.arrayBuffer(); state.formName=f.name;}
+ const pdfDoc=await PDFLib.PDFDocument.load(state.formBytes,{ignoreEncryption:true});
+ state.pageCount=pdfDoc.getPageCount();
+ const form=pdfDoc.getForm(); state.pdfFields=form.getFields().map(x=>({name:x.getName(),type:x.constructor.name}));
+ try{state.detectedSections=await detectPdfSections(state.formBytes); }catch(e){state.detectedSections=[];}
+ // v13 fix: keep overlay presets form-specific. If the user previously loaded the
+ // AFPG Withdrawal preset, do not let those coordinates remain active when a
+ // Direct Debit or other form is uploaded/selected next.
+ if(isAfpgWithdrawalForm()){
+   loadAfpgWithdrawalPreset();
+ }else{
+   removeFormSpecificOverlayRows();
+ }
+ renderPdfFields(); updateStats(); updateReadiness(); log(`Form inspected: ${state.pdfFields.length} fillable field(s), ${state.detectedSections.length} section(s) found across ${state.pageCount} page(s).`); loadRulesForCurrentForm(); renderQuickRules();
+}
+
+async function detectPdfSections(ab){
+ const pdf=await pdfjsLib.getDocument({data:ab.slice(0)}).promise; const sections=[];
+ for(let p=1;p<=pdf.numPages;p++){
+   const page=await pdf.getPage(p); const tc=await page.getTextContent();
+   const text=tc.items.map(i=>i.str).join(' ').replace(/\s+/g,' ');
+   const patterns=[
+     /Section\s+[A-Z]\s*:\s*[^0-9]+?(?=\s+\d+\s|\s+Section\s+[A-Z]|$)/gi,
+     /\b\d+[A-Z]?\.\s+[^.]{4,80}?(?=\s+\d+[A-Z]?\.|\s+Section\s+[A-Z]|$)/gi,
+     /\b\d+\.\s+[A-Z][A-Za-z\s'’&/-]{4,70}/g
+   ];
+   patterns.forEach(re=>{let m; while((m=re.exec(text))!==null){
+     let section=m[0].replace(/\s+/g,' ').trim();
+     section=section.replace(/Macquarie.*$/i,'').trim();
+     if(section.length>5 && section.length<120 && !sections.some(s=>s.section.toLowerCase()===section.toLowerCase())){
+       sections.push({section,page:p,x:58,y:720-(sections.filter(s=>s.page===p).length*40),w:100});
+     }
+   }});
+ }
+ return sections.slice(0,40);
+}
+
+function cleanBsb(){return (val('bsb')||'').replace(/\D/g,'').slice(0,6);}
+function bsbPart(which){const d=cleanBsb(); return which===1?d.slice(0,3):d.slice(3,6);}
+function suggestedValue(field){
+ const afpgValue=suggestedAfpgWithdrawalValue(field); if(afpgValue) return afpgValue;
+ const n=field.toLowerCase();
+ // Direct Debit PDF has two separate BSB fields. Always split the 6-digit BSB as 3 + 3.
+ if(n.includes('branch bsb_3_1') || n.endsWith('bsb_3_1')) return bsbPart(1);
+ if(n.includes('branch bsb_3_2') || n.endsWith('bsb_3_2')) return bsbPart(2);
+ if(n==='bankacc' || n.includes('bank account number') || n.includes('bankacc')) return val('bankAccount');
+ if(n==='acc name' || n.includes('account name')) return val('bankAccountName') || val('accountName') || val('fullName');
+ if(n.includes('institution name') || n.includes('financial institution')) return val('bankAccountName') || val('fullName');
+ const pairs=[['dob','dob'],['birth','dob'],['date of birth','dob'],['account number','pensionAccount'],['account no','pensionAccount'],['name','fullName'],['address','address'],['phone','phone'],['mobile','phone'],['email','email'],['bsb','bsb'],['institution','bankAccountName']];
+ for(const [needle,id] of pairs){ if(n.includes(needle)) return val(id); }
+ return '';
+}
+function renderPdfFields(){
+ const body=document.getElementById('pdfFields'); body.innerHTML='';
+ state.pdfFields.forEach((f,i)=>{body.innerHTML+=`<tr><td>${i+1}</td><td class="mono">${escapeHtml(f.name)}</td><td>${f.type}</td><td>${escapeHtml(suggestedValue(f.name))}</td></tr>`});
+}
+function dataMap(){return {fullName:val('fullName'),dob:val('dob'),address:val('address'),phone:val('phone'),email:val('email'),communication:val('communication'),feeAnniversary:val('feeAnniversary'),pensionAccount:val('pensionAccount'),accountName:val('accountName')||val('fullName'),product:val('product'),availableCash:val('availableCash'),withdrawalAmount:val('withdrawalAmount'),withdrawalReason:val('withdrawalReason')||'Client request',bsb:val('bsb'),bankAccount:val('bankAccount'),bankAccountName:val('bankAccountName')||val('fullName'),bankInstitution:val('bankInstitution')}}
+function loadMacquariePensionPreset(){
+ state.overlay=[
+  {label:'Section 1 - Account number',field:'pensionAccount',page:1,x:64,y:690,w:180},
+  {label:'Section 1 - Account name',field:'accountName',page:1,x:300,y:690,w:260},
+  {label:'Section 5 - Australian financial institution name',field:'bankAccountName',page:6,x:58,y:198,w:260},
+  {label:'Section 5 - BSB',field:'bsb',page:6,x:58,y:158,w:90},
+  {label:'Section 5 - Account number',field:'bankAccount',page:6,x:198,y:158,w:160},
+  {label:'Section 5 - Account name',field:'bankAccountName',page:6,x:58,y:116,w:280}
+ ];
+ renderOverlayRows(); updateStats(); log('Loaded Macquarie Pension Update overlay preset. Adjust coordinates after checking the first output if required.');
+}
+
+function isAfpgWithdrawalForm(){
+ const fieldNames=(state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
+ return /AFPG.*withdrawal|withdrawal.*AFPG|withdrawal form/i.test(state.formName||'') || /withdrawal/i.test(fieldNames);
+}
+function isDirectDebitForm(){
+ const fieldNames=(state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
+ return /direct debit|DDR/i.test(state.formName||'') || /CMA DDR 3Branch BSB|bankacc|Type request|First dependent 11/i.test(fieldNames);
+}
+function removeFormSpecificOverlayRows(){
+ state.overlay=(state.overlay||[]).filter(r=>{
+   const label=String(r.label||'');
+   // Remove AFPG Withdrawal coordinate rows when the current form is not the AFPG Withdrawal form.
+   if(/^AFPG Withdrawal\s*-/i.test(label) && !isAfpgWithdrawalForm()) return false;
+   return true;
+ });
+ renderOverlayRows();
+ updateStats();
+}
+function overlayRowAppliesToCurrentForm(row){
+ const label=String(row.label||'');
+ if(/^AFPG Withdrawal\s*-/i.test(label)) return isAfpgWithdrawalForm();
+ // Direct Debit forms have fillable fields. Do not apply leftover manual overlay
+ // rows in Auto mode unless the row is not from another form-specific preset.
+ if(isDirectDebitForm() && /Withdrawal|Pension Update|Section 5|Section 1/i.test(label)) return false;
+ return true;
+}
+function loadAfpgWithdrawalPreset(){
+ // v11 fix: the AFPG Withdrawal PDF can contain hidden/misaligned fillable fields.
+ // These coordinates intentionally use overlay-only writing into the visible pale blue boxes.
+ // Do not place DOB or address on this form, as they do not belong in the visible AFPG Withdrawal layout.
+ state.overlay=[
+  // Account information section - aligned to the visible pale boxes.
+  {label:'AFPG Withdrawal - Provider / product',field:'product',page:1,x:162,y:622,w:385},
+  {label:'AFPG Withdrawal - Account number',field:'pensionAccount',page:1,x:162,y:578,w:385},
+  {label:'AFPG Withdrawal - Client name',field:'fullName',page:1,x:162,y:544,w:385},
+  {label:'AFPG Withdrawal - Contact number',field:'phone',page:1,x:162,y:514,w:385},
+  {label:'AFPG Withdrawal - Email',field:'email',page:1,x:162,y:483,w:385},
+  {label:'AFPG Withdrawal - Reason for withdrawal',field:'withdrawalReason',page:1,x:162,y:453,w:385},
+
+  // Withdrawal details section.
+  {label:'AFPG Withdrawal - Withdrawal amount',field:'withdrawalAmount',page:1,x:162,y:386,w:385},
+
+  // Bank details section - second option boxes only.
+  {label:'AFPG Withdrawal - Bank account name',field:'bankAccountName',page:1,x:162,y:235,w:180},
+  {label:'AFPG Withdrawal - Bank account number',field:'bankAccount',page:1,x:485,y:235,w:150},
+  {label:'AFPG Withdrawal - BSB',field:'bsb',page:1,x:162,y:204,w:120},
+  {label:'AFPG Withdrawal - Name of institution',field:'bankInstitution',page:1,x:485,y:204,w:150}
+ ];
+ renderOverlayRows(); updateStats(); log('Loaded v12 AFPG Withdrawal overlay preset with corrected visible-box coordinates. Auto mode skips the bad PDF field layer.');
+}
+function suggestedAfpgWithdrawalValue(field){
+ const n=String(field||'').toLowerCase();
+ if(!isAfpgWithdrawalForm()) return '';
+ if(/date.*birth|\bdob\b|birth date/.test(n)) return val('dob');
+ if(/email/.test(n)) return val('email');
+ if(/mobile|phone|contact/.test(n)) return val('phone');
+ if(/address|residential|postal/.test(n)) return val('address');
+ if(/bsb/.test(n)) return val('bsb');
+ if(/bank.*account.*name|account.*name.*bank|name.*account/.test(n)) return val('bankAccountName') || val('accountName') || val('fullName');
+ if(/bank.*account.*number|account.*number.*bank|financial.*account/.test(n)) return val('bankAccount');
+ if(/account.*number|member.*number|policy.*number|client.*number|wrap.*number|investor.*number/.test(n)) return val('pensionAccount');
+ if(/provider|product|fund|platform/.test(n)) return val('product');
+ if(/withdraw|amount|payment|sum/.test(n)) return val('withdrawalAmount');
+ if(/client.*name|member.*name|investor.*name|account.*holder|full.*name|name/.test(n)) return val('fullName');
+ return '';
+}
+
+function addOverlayRow(r={label:'New field',field:'fullName',page:1,x:60,y:700,w:250}){state.overlay.push(r); renderOverlayRows(); updateStats();}
+function clearOverlayRows(){state.overlay=[]; renderOverlayRows(); updateStats();}
+function renderOverlayRows(){
+ const wrap=document.getElementById('overlayRows'); wrap.innerHTML=''; const dm=dataMap();
+ state.overlay.forEach((r,i)=>{wrap.innerHTML+=`<div class="mapGrid" style="margin-bottom:8px">
+ <div class="field"><label>Label</label><input value="${escapeAttr(r.label)}" onchange="state.overlay[${i}].label=this.value"></div>
+ <div class="field"><label>Data field</label><select onchange="state.overlay[${i}].field=this.value">${Object.keys(dm).map(k=>`<option ${r.field===k?'selected':''} value="${k}">${k}</option>`).join('')}</select></div>
+ <div class="field"><label>Page</label><input type="number" value="${r.page}" onchange="state.overlay[${i}].page=+this.value"></div>
+ <div class="field"><label>X</label><input type="number" value="${r.x}" onchange="state.overlay[${i}].x=+this.value"></div>
+ <div class="field"><label>Y</label><input type="number" value="${r.y}" onchange="state.overlay[${i}].y=+this.value"></div>
+ <button class="btn red smallBtn" onclick="state.overlay.splice(${i},1);renderOverlayRows();updateStats()">Remove</button>
+ </div>`});
+}
+
+
+const macquarieSections=[
+ {section:'2A - Rollover from another fund',page:1,x:58,y:575,w:80},
+ {section:'2B - Rollover from SMSF - investment held with Macquarie',page:3,x:58,y:725,w:80},
+ {section:'2C - Rollover from SMSF - external provider',page:3,x:58,y:510,w:80},
+ {section:'3A - Rollover from another Macquarie Superannuation account',page:4,x:58,y:650,w:80},
+ {section:'3B - Deduction Notices',page:5,x:58,y:650,w:80},
+ {section:'4A - Contribute via direct debit',page:5,x:58,y:245,w:80},
+ {section:'4B - Contribute via in-specie transfer',page:5,x:58,y:110,w:80},
+ {section:'4C - Deduction Notices',page:6,x:58,y:675,w:80},
+ {section:'4D - Special contributions',page:6,x:58,y:415,w:80},
+ {section:'5 - Australian financial institution details',page:6,x:58,y:210,w:80},
+ {section:'6 - Pension type',page:7,x:58,y:690,w:80}
+];
+function addDetectedOrMacquarieSections(){renderQuickRules(true); log((state.detectedSections&&state.detectedSections.length)?'Loaded detected PDF sections for Yes/No rules.':'Loaded Macquarie Pension Update preset sections.');}
+function addMacquarieQuickSections(){addDetectedOrMacquarieSections();}
+function ruleForSection(section){return (state.rules||[]).find(r=>String(r.section||'').startsWith(section));}
+function removeRuleBySection(section){state.rules=(state.rules||[]).filter(r=>!String(r.section||'').startsWith(section));}
+function setQuickRule(section,page,x,y,action){removeRuleBySection(section); if(action==='yes'){renderRuleRows();renderQuickRules();return;} const ruleAction=action==='na'?'na':'ignore'; state.rules.push({section,action:ruleAction,page:+page||1,x:+x||58,y:+y||700,w:90,customText:''}); renderRuleRows(); renderQuickRules(); updateStats();}
+function actionForSection(section){const r=ruleForSection(section); if(!r) return 'yes'; return r.action==='na'?'na':'blank';}
+function renderQuickRules(forceMacq=false){
+ const secBody=document.getElementById('quickSectionRows'); const pageBody=document.getElementById('quickPageRows'); if(!secBody||!pageBody) return;
+ const sections=(state.detectedSections&&state.detectedSections.length)?state.detectedSections:macquarieSections;
+ secBody.innerHTML=sections.map(s=>{const a=actionForSection(s.section); return `<tr><td><b>${escapeHtml(s.section)}</b></td><td>${s.page}</td><td><select onchange="setQuickRule('${escapeAttr(s.section)}',${s.page},${s.x},${s.y},this.value)"><option value="yes" ${a==='yes'?'selected':''}>Yes - complete if needed</option><option value="blank" ${a==='blank'?'selected':''}>No - leave blank / ignore</option><option value="na" ${a==='na'?'selected':''}>No - write N/A</option></select></td><td>${a==='yes'?'No rule applied':(a==='na'?'N/A will be written':'Nothing will be written')}</td></tr>`}).join('');
+ const pc=state.pageCount||9; pageBody.innerHTML=Array.from({length:pc},(_,i)=>{const page=i+1, section='PAGE '+page+' - DO NOT COMPLETE'; const a=actionForSection(section); return `<tr><td><b>Page ${page}</b></td><td><select onchange="setQuickRule('${section}',${page},40,760,this.value)"><option value="yes" ${a==='yes'?'selected':''}>Yes - complete this page</option><option value="blank" ${a==='blank'?'selected':''}>No - leave page blank / ignore</option><option value="na" ${a==='na'?'selected':''}>No - write N/A on page</option></select></td><td>${a==='yes'?'No rule applied':(a==='na'?'N/A will be written near top of page':'Overlay writing to this page will be skipped')}</td></tr>`}).join('');
+}
+function pageIsIgnored(page){return (state.rules||[]).some(r=>r.action==='ignore' && String(r.section||'').startsWith('PAGE '+page+' - DO NOT COMPLETE'));}
+function overlayIsBlocked(row){
+ if(pageIsIgnored(row.page||1)) return true;
+ return (state.rules||[]).some(r=>r.action==='ignore' && !String(r.section||'').startsWith('PAGE ') && String(row.label||'').toLowerCase().includes(String(r.section||'').split(' ')[0].toLowerCase()));
+}
+
+function currentFormRuleKey(){return 'afpgFormRules_'+(state.formName||'Uploaded_Form').replace(/[^A-Za-z0-9_. -]/g,'_');}
+function currentTemplateKey(){return 'afpgFormTemplate_'+(state.formName||prompt('Template name?')||'Uploaded_Form').replace(/[^A-Za-z0-9_. -]/g,'_');}
+function addRuleRow(r={section:'',action:'na',page:1,x:60,y:650,w:250,customText:''}){state.rules.push(r); renderRuleRows();}
+function clearRuleRows(){state.rules=[]; renderRuleRows();}
+function renderRuleRows(){
+ const wrap=document.getElementById('ruleRows'); if(!wrap) return; wrap.innerHTML='';
+ state.rules.forEach((r,i)=>{wrap.innerHTML+=`<div class="card" style="padding:12px;margin-bottom:10px;background:#fbfdff">
+   <div class="row3">
+     <div class="field"><label>Section / instruction label</label><input placeholder="e.g. Section 2A Rollover from another fund" value="${escapeAttr(r.section)}" onchange="state.rules[${i}].section=this.value"></div>
+     <div class="field"><label>Rule action</label><select onchange="state.rules[${i}].action=this.value;renderRuleRows()"><option value="ignore" ${r.action==='ignore'?'selected':''}>Ignore / leave blank</option><option value="na" ${r.action==='na'?'selected':''}>Write N/A</option><option value="custom" ${r.action==='custom'?'selected':''}>Write custom text</option></select></div>
+     <div class="field"><label>Custom text</label><input placeholder="Only used for custom text" value="${escapeAttr(r.customText)}" ${r.action==='custom'?'':'disabled'} onchange="state.rules[${i}].customText=this.value"></div>
+   </div>
+   <div class="row3" style="margin-top:8px">
+     <div class="field"><label>Page</label><input type="number" value="${r.page}" onchange="state.rules[${i}].page=+this.value"></div>
+     <div class="field"><label>X coordinate</label><input type="number" value="${r.x}" onchange="state.rules[${i}].x=+this.value"></div>
+     <div class="field"><label>Y coordinate</label><input type="number" value="${r.y}" onchange="state.rules[${i}].y=+this.value"></div>
+     <div class="field"><label>Max width</label><input type="number" value="${r.w}" onchange="state.rules[${i}].w=+this.value"></div>
+   </div>
+   <div class="btns"><button class="btn red smallBtn" onclick="state.rules.splice(${i},1);renderRuleRows()">Remove rule</button></div>
+ </div>`});
+}
+function saveRulesForCurrentForm(){localStorage.setItem(currentFormRuleKey(), JSON.stringify(state.rules||[])); log('Saved '+(state.rules||[]).length+' rule(s) for '+(state.formName||'current uploaded form')+'.');}
+function loadRulesForCurrentForm(){try{const raw=localStorage.getItem(currentFormRuleKey()); state.rules=raw?JSON.parse(raw):[]; renderRuleRows(); renderQuickRules(); log('Loaded '+state.rules.length+' rule(s) for '+(state.formName||'current uploaded form')+'.');}catch(e){log('Could not load rules: '+e.message);}}
+
+
+function setTextIfExists(form, fieldName, text){
+ try{ const f=form.getTextField(fieldName); f.setText(String(text||'')); return true; }catch(e){ return false; }
+}
+function drawDigitsIntoBoxes(page, text, x, y, boxW, count, font, size){
+ const digits=String(text||'').replace(/\D/g,'').slice(0,count);
+ const color=PDFLib.rgb(0,0,0);
+ for(let i=0;i<digits.length;i++){
+   page.drawText(digits[i],{x:x+(i*boxW)+(boxW*0.32),y:y,size,font,color});
+ }
+}
+function applyDirectDebitBankDetails(pdfDoc, form, font, size){
+ const fieldNames=(state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
+ const looksLikeDirectDebit=/direct debit/i.test(state.formName||'') || /CMA DDR 3Branch BSB/i.test(fieldNames) || /bankacc/i.test(fieldNames);
+ if(!looksLikeDirectDebit) return;
+ const bsb=cleanBsb();
+ const bsb1=bsb.slice(0,3);
+ const bsb2=bsb.slice(3,6);
+ const acct=(val('bankAccount')||'').replace(/\s+/g,'');
+ const accName=val('bankAccountName') || val('accountName') || val('fullName');
+ const institution=val('financialInstitution') || ''; // leave blank unless manually entered/found later
+
+ // IMPORTANT v9 fix:
+ // The Direct Debit form has real fillable fields for Account name, Bank account number and BSB.
+ // v8 wrote to those fields AND drew fallback overlay text, causing double text/digits.
+ // v9 writes to the actual fields only. No overlay is drawn over these boxes.
+ setTextIfExists(form,'Acc name',accName);
+ setTextIfExists(form,'bankacc',acct);
+ setTextIfExists(form,'Institution name',institution);
+ setTextIfExists(form,'CMA DDR 3Branch BSB_3_1',bsb1);
+ setTextIfExists(form,'CMA DDR 3Branch BSB_3_2',bsb2);
+ try{ form.updateFieldAppearances(font); }catch(e){}
+}
+
+function applyDirectDebitDefaults(pdfDoc, form, font, size){
+ // Macquarie Superannuation Direct Debit Request defaults requested by AFPG:
+ // 2. Direct debit details A = Set-up a new plan
+ // B. Frequency of request = One-off contribution, date to be deducted
+ const fieldNames = (state.pdfFields||[]).map(f=>String(f.name||'')).join(' | ');
+ const looksLikeDirectDebit = /direct debit/i.test(state.formName||'') || /\bType request\b/i.test(fieldNames) || /\bFirst dependent 11\b/i.test(fieldNames);
+ if(!looksLikeDirectDebit) return;
+ let usedFormFields=false;
+ try{ form.getRadioGroup('Type request').select('1'); usedFormFields=true; }catch(e){}
+ try{ form.getRadioGroup('First dependent 11').select('1'); usedFormFields=true; }catch(e){}
+ try{ form.updateFieldAppearances(); }catch(e){}
+ // Fallback overlay X marks in case the radio button appearance does not render in some browsers/readers.
+ // Coordinates are for the uploaded Macquarie Direct Debit A4 form, page 1.
+ try{
+   const p=pdfDoc.getPages()[0]; if(!p) return;
+   const color=PDFLib.rgb(0,0,0);
+   if(!usedFormFields){
+     p.drawText('X',{x:176,y:278,size:size+2,font,color}); // A: Set-up a new plan
+     p.drawText('X',{x:176,y:216,size:size+2,font,color}); // B: One-off contribution
+   }
+ }catch(e){}
+}
+
+function applyFormRules(pdfDoc,font,size){
+ const pages=pdfDoc.getPages();
+ (state.rules||[]).forEach(r=>{
+   if(r.action==='ignore') return;
+   const p=pages[(r.page||1)-1]; if(!p) return;
+   const text=r.action==='custom'?(r.customText||''):'N/A'; if(!text) return;
+   p.drawText(String(text),{x:+r.x||0,y:+r.y||0,size,font,color:PDFLib.rgb(0,0,0),maxWidth:+r.w||300,lineHeight:size+2});
+ });
+}
+
+async function generatePdf(){
+ if(!state.formBytes){const f=document.getElementById('formFile').files[0]; if(f){state.formBytes=await f.arrayBuffer(); state.formName=f.name;} }
+ if(!state.formBytes){alert('Upload or select a PDF form first.'); return;}
+ const pdfDoc=await PDFLib.PDFDocument.load(state.formBytes,{ignoreEncryption:true}); const mode=document.getElementById('outputMode').value; const dm=dataMap();
+ let autoFont=null; let autoSize=parseInt(val('fontSize')||'9',10);
+ const afpgWithdrawalOutput=isAfpgWithdrawalForm();
+ if((mode==='auto'||mode==='fields') && !(afpgWithdrawalOutput && mode==='auto')){
+   try{
+     const form=pdfDoc.getForm();
+     autoFont=await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+     form.getFields().forEach(field=>{const nm=field.getName(); const sv=suggestedValue(nm); if(!sv) return; try{ if(field.setText) field.setText(sv); }catch(e){} });
+     applyDirectDebitDefaults(pdfDoc, form, autoFont, autoSize);
+     applyDirectDebitBankDetails(pdfDoc, form, autoFont, autoSize);
+     try{form.updateFieldAppearances();}catch(e){}
+   }catch(e){log('No fillable field layer available.');}
+ }
+ if(mode==='auto'||mode==='overlay'){
+   const font=await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica); const size=parseInt(val('fontSize')||'9',10);
+   const pages=pdfDoc.getPages();
+   state.overlay.forEach(r=>{if(!overlayRowAppliesToCurrentForm(r)) return; if(overlayIsBlocked(r)) return; const p=pages[(r.page||1)-1]; if(!p) return; const text=dm[r.field]||''; if(!text) return; p.drawText(String(text),{x:+r.x||0,y:+r.y||0,size,font,color:PDFLib.rgb(0,0,0),maxWidth:+r.w||300,lineHeight:size+2});});
+ }
+ if(state.rules && state.rules.length){ const ruleFont=await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica); const ruleSize=parseInt(val('fontSize')||'9',10); applyFormRules(pdfDoc,ruleFont,ruleSize); }
+ const bytes=await pdfDoc.save(); downloadBlob(bytes, `Partially_Completed_${(state.formName||'Client_Form').replace(/\.pdf$/i,'')}.pdf`, 'application/pdf');
+ log('PDF generated. Review all values before sending to client.');
+}
+function downloadDataSummary(){
+ const dm=dataMap(); const txt=Object.entries(dm).map(([k,v])=>`${k}: ${v}`).join('\n'); downloadBlob(txt,'Client_Data_Extraction_Summary.txt','text/plain');
+}
+function downloadBlob(data,name,type){const blob=new Blob([data],{type}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+async function saveFormReserve(){
+ const f=document.getElementById('formFile').files[0]; if(!f){alert('Upload a PDF form first.'); return;}
+ const ab=await f.arrayBuffer(); const key='afpgFormReserve_'+f.name; localStorage.setItem(key, arrayBufferToBase64(ab)); loadReserveList(); log('Saved form to this browser reserve: '+f.name);
+}
+function loadReserveList(){const sel=document.getElementById('reserveSelect'); sel.innerHTML='<option value="">No saved form selected</option>'; Object.keys(localStorage).filter(k=>k.startsWith('afpgFormReserve_')).forEach(k=>{const name=k.replace('afpgFormReserve_',''); sel.innerHTML+=`<option value="${escapeAttr(k)}">${escapeHtml(name)}</option>`});}
+async function loadTemplateList(){
+ const sel=document.getElementById('templateSelect'); 
+ if(!sel) return; 
+ sel.innerHTML='<option value="">No saved template selected</option>';
+
+ if(!supabaseDb){
+   sel.innerHTML += '<option value="">Supabase not configured</option>';
+   return;
+ }
+
+ const { data, error } = await supabaseDb
+   .from('afpg_form_templates')
+   .select('*')
+   .order('template_name', { ascending: true });
+
+ if(error){
+   log('Supabase template load failed: '+error.message);
+   alert('Supabase template load failed: '+error.message);
+   return;
+ }
+
+ window.sharedTemplates = data || [];
+ window.sharedTemplates.forEach(row=>{
+   sel.innerHTML += `<option value="${escapeAttr(row.id)}">${escapeHtml(row.template_name || row.form_name || 'Unnamed template')}</option>`;
+ });
+ log('Loaded '+window.sharedTemplates.length+' shared template(s) from Supabase.');
+}
+async function saveCurrentAsTemplate(){
+ if(!state.formBytes){
+   alert('Upload/inspect the blank PDF first.');
+   return;
+ }
+ if(!supabaseDb){
+   alert('Supabase is not configured yet. Paste your Project URL and Publishable Key near the top of this HTML file.');
+   return;
+ }
+
+ const templateName = state.formName || 'Uploaded Form';
+ const pack = {
+   template_name: templateName,
+   form_name: state.formName,
+   form_bytes: arrayBufferToBase64(state.formBytes),
+   rules: state.rules || [],
+   overlay: state.overlay || [],
+   detected_sections: state.detectedSections || [],
+   page_count: state.pageCount || 0
+ };
+
+ // Replace any existing template with the same name so the shared library stays clean.
+ const deleteResult = await supabaseDb
+   .from('afpg_form_templates')
+   .delete()
+   .eq('template_name', templateName);
+
+ if(deleteResult.error){
+   alert('Supabase save failed while replacing old template: '+deleteResult.error.message);
+   log('Supabase save failed: '+deleteResult.error.message);
+   return;
+ }
+
+ const { error } = await supabaseDb
+   .from('afpg_form_templates')
+   .insert(pack);
+
+ if(error){
+   alert('Supabase save failed: '+error.message);
+   log('Supabase save failed: '+error.message);
+   return;
+ }
+
+ await loadTemplateList();
+ log('Saved shared template to Supabase: '+templateName+' with '+pack.rules.length+' rule(s) and '+pack.overlay.length+' overlay mapping(s).');
+ alert('Template saved to shared Supabase library.');
+}
+function loadTemplate(){
+ const id=document.getElementById('templateSelect').value;
+ if(!id) return;
+ const pack=(window.sharedTemplates||[]).find(x=>String(x.id)===String(id));
+ if(!pack){
+   alert('Template not found in the shared Supabase list. Click Refresh lists and try again.');
+   return;
+ }
+ try{
+   state.formName=pack.form_name || pack.template_name || 'Shared_Template';
+   state.formBytes=base64ToArrayBuffer(pack.form_bytes);
+   state.rules=pack.rules || [];
+   state.overlay=pack.overlay || [];
+   state.detectedSections=pack.detected_sections || [];
+   state.pageCount=pack.page_count || 0;
+
+   inspectPdfForm().then(()=>{
+     state.rules=pack.rules || [];
+     state.overlay=pack.overlay || [];
+     state.detectedSections=pack.detected_sections || state.detectedSections || [];
+     state.pageCount=pack.page_count || state.pageCount || 0;
+     renderRuleRows();
+     renderQuickRules();
+     renderOverlayRows();
+     updateStats();
+     log('Loaded shared template from Supabase: '+state.formName);
+   });
+ }catch(e){
+   log('Could not load shared template: '+e.message);
+   alert('Could not load shared template: '+e.message);
+ }
+}
+function loadReservedForm(){const k=document.getElementById('reserveSelect').value; if(!k)return; state.formBytes=base64ToArrayBuffer(localStorage.getItem(k)); state.formName=k.replace('afpgFormReserve_',''); inspectPdfForm(); setTimeout(loadRulesForCurrentForm,200);}
+function arrayBufferToBase64(buffer){let binary=''; const bytes=new Uint8Array(buffer); for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]); return btoa(binary);}function base64ToArrayBuffer(base64){const binary=atob(base64); const bytes=new Uint8Array(binary.length); for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i); return bytes.buffer;}
+function updateStats(){
+ const c=['fullName','dob','address','phone','email'].filter(id=>val(id)).length; const a=['pensionAccount','accountName','product','availableCash'].filter(id=>val(id)).length; const b=['bsb','bankAccount','bankAccountName'].filter(id=>val(id)).length;
+ document.getElementById('kpiClient').textContent=c; document.getElementById('kpiAcct').textContent=a; document.getElementById('kpiBank').textContent=b; document.getElementById('kpiForm').textContent=state.pdfFields.length; document.getElementById('kpiOverlay').textContent=state.overlay.length; updateReadiness(); renderPdfFields();
+}
+function updateReadiness(){
+ const items=[['Client name',val('fullName')],['Date of birth',val('dob')],['Address',val('address')],['Phone/email',val('phone')||val('email')],['Pension account number',val('pensionAccount')],['Bank BSB/account number',val('bsb')&&val('bankAccount')],['PDF form uploaded/selected',state.formBytes],['Fill method available',state.pdfFields.length||state.overlay.length]];
+ document.getElementById('readiness').innerHTML=items.map(([n,ok])=>`<li>${ok?'✅':'⚠️'} <span class="${ok?'ok':'warnText'}">${n}</span></li>`).join('');
+}
+function showTab(name){['status','fields','overlay','rules','raw'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('hidden',t!==name)}); document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['status','fields','overlay','rules','raw'][i]===name));}
+function escapeHtml(s){return String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;')}
+function clearAll(){ids.forEach(id=>document.getElementById(id).value=''); state={factText:'',acctText:'',formBytes:null,formName:'',pdfFields:[],overlay:[],clients:[],rules:[],pageCount:0,detectedSections:[]}; document.getElementById('factPreview').textContent=''; document.getElementById('acctPreview').textContent=''; document.getElementById('pdfFields').innerHTML=''; document.getElementById('overlayRows').innerHTML=''; if(document.getElementById('ruleRows')) document.getElementById('ruleRows').innerHTML=''; document.getElementById('log').textContent='Cleared.'; updateStats();}
+ids.forEach(id=>document.addEventListener('input',e=>{if(e.target && e.target.id===id) updateStats()})); loadReserveList(); loadTemplateList(); renderRuleRows(); renderQuickRules(); updateStats();
+</script>
+</body>
+</html>
