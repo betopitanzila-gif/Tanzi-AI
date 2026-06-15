@@ -10,7 +10,7 @@
 </style>
 </head>
 <body>
-<header class="top"><div class="brand">AFPG<small>Australian Financial Planning Group</small></div><h1>Notice of Intent (NOI) Fixed Template RFF Autofill v9</h1><span>Help</span></header>
+<header class="top"><div class="brand">AFPG<small>Australian Financial Planning Group</small></div><h1>Notice of Intent (NOI) Fixed Template RFF Autofill</h1><span>Help</span></header>
 <main class="wrap">
 <section class="panel">
   <div class="step"><div class="num">1</div><div><h2>Upload RFF / Client Review</h2><p>Upload the client RFF DOCX. This dashboard is fixed for the ATO Notice of Intent form only.</p><div class="drop"><input id="rffFile" type="file" accept=".docx,.txt" /></div><div id="rffStatus" class="status">Waiting for RFF upload...</div></div></div>
@@ -30,13 +30,13 @@
     <p class="note">Enter these before generating the PDF. Anything left blank will not be filled.</p>
     <div class="grid2"><div class="field"><label>TFN (optional)</label><input id="tfn" type="text" placeholder="Leave blank if not provided"></div><div class="field"><label>Notice Type</label><select id="noticeType"><option value="original">Original Notice - No variation</option><option value="variation">Variation Notice - Yes</option></select></div></div>
     <div class="grid2"><div class="field"><label>Financial Year Ended 30 June 20</label><input id="fy" type="text" value="26"></div><div class="field"><label>Declaration Date (optional)</label><input id="declarationDate" type="text" placeholder="DD/MM/YYYY"></div></div>
-    <div class="grid2"><div class="field"><label>Total Personal Contribution Amount</label><input id="contributionAmount" type="text" placeholder="e.g. 360,000"></div><div class="field"><label>Amount to Claim as Tax Deduction</label><input id="deductionAmount" type="text" placeholder="e.g. 360,000"></div></div>
+    <div class="grid2"><div class="field"><label>Total Personal Contribution Amount</label><input id="contributionAmount" type="text" placeholder="e.g. 10000"></div><div class="field"><label>Amount to Claim as Tax Deduction</label><input id="deductionAmount" type="text" placeholder="e.g. 10000"></div></div>
     <div class="grid2"><div class="field"><label>Original Notice Previously Claimed Amount</label><input id="previousClaimAmount" type="text" placeholder="Only for variation"></div><div class="field"><label>Declaration Name Override</label><input id="declarationNameOverride" type="text" placeholder="Uses client name if blank"></div></div>
     <label class="checkbox"><input type="checkbox" id="fillDeclareName" checked> Fill declaration name on page 2</label>
     <label class="checkbox"><input type="checkbox" id="fillAmounts" checked> Fill contribution / deduction amount boxes</label>
     <button class="btn secondary smallbtn" id="refreshPreview">Refresh Preview</button>
   </div></div>
-  <div class="step"><div class="num">4</div><div style="width:100%"><h2>Adjust Text Placement</h2><div class="info manual"><h3>Drag-to-fix mode included</h3>Click any text on the preview and drag it into the correct boxes. The download now uses the exact preview, so dragged placements are preserved.</div><button class="btn secondary smallbtn" id="resetCoords">Reset placements</button></div></div>
+  <div class="step"><div class="num">4</div><div style="width:100%"><h2>Adjust Text Placement</h2><div class="info manual"><h3>Drag-to-fix mode included</h3>Click any text on the preview and drag it into the correct boxes. This fixes State/Postcode/Declaration placement before download.</div><button class="btn secondary smallbtn" id="resetCoords">Reset placements</button></div></div>
   <div class="step"><div class="num">5</div><div style="width:100%"><h2>Generate PDF</h2><button class="btn primary" id="downloadPdf">Generate Pre-filled PDF</button><div id="downloadStatus" class="status"></div></div></div>
   <div class="footer">This dashboard keeps everything in your browser. It does not upload client data externally.</div>
 </section>
@@ -72,7 +72,6 @@ let coords = JSON.parse(JSON.stringify(defaultOffsets));
 function b64ToBytes(b64){const bin=atob(b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 function clean(s){return (s||'').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').trim();}
 function onlyDigits(s){return (s||'').replace(/\D/g,'');}
-function amountChars(s){return (s||'').toString().replace(/[^0-9,]/g,'').replace(/,+/g,',').replace(/^,|,$/g,'');}
 function nameParts(full){full=clean(full);let bits=full.split(/\s+/);return {first:bits[0]||'', family:bits[bits.length-1]||'', other:bits.slice(1,-1).join(' ')};}
 function splitAddress(addr){addr=clean(addr).replace(/\s+/g,' ');let m=addr.match(/^(.*?),?\s+([^,\d]+?)\s+(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)\s+(\d{4})$/i); if(m) return {street:m[1],suburb:m[2],state:m[3].toUpperCase(),postcode:m[4]}; return {street:addr,suburb:'',state:'',postcode:''};}
 function parseLines(text){return text.split(/\r?\n/).map(clean).filter(Boolean);}
@@ -89,79 +88,18 @@ function parseRFF(text){const lines=parseLines(text);let names=nextValues(lines,
  return out.filter(c=>c.fullName);
 }
 function fillForm(c){['fullName','firstName','familyName','dob','mobile','email','street','suburb','state','postcode','fund','member','abn','usi','title'].forEach(id=>{let el=document.getElementById(id); if(el) el.value=c[id]||'';}); updateClientCard(); refreshOverlay();}
-function currentData(){return {title:val('title'),fullName:val('fullName'),firstName:val('firstName'),familyName:val('familyName'),otherNames:'',dob:val('dob'),mobile:onlyDigits(val('mobile')),email:val('email'),street:val('street'),suburb:val('suburb'),state:val('state').toUpperCase(),postcode:onlyDigits(val('postcode')),fund:val('fund'),member:onlyDigits(val('member')),abn:onlyDigits(val('abn')),usi:onlyDigits(val('usi')),fy:onlyDigits(val('fy')).slice(-2),tfn:onlyDigits(val('tfn')),noticeType:val('noticeType'),declarationDate:val('declarationDate'),contributionAmount:amountChars(val('contributionAmount')),deductionAmount:amountChars(val('deductionAmount')),previousClaimAmount:amountChars(val('previousClaimAmount')),declarationNameOverride:val('declarationNameOverride')};}
+function currentData(){return {title:val('title'),fullName:val('fullName'),firstName:val('firstName'),familyName:val('familyName'),otherNames:'',dob:val('dob'),mobile:onlyDigits(val('mobile')),email:val('email'),street:val('street'),suburb:val('suburb'),state:val('state').toUpperCase(),postcode:onlyDigits(val('postcode')),fund:val('fund'),member:onlyDigits(val('member')),abn:onlyDigits(val('abn')),usi:onlyDigits(val('usi')),fy:onlyDigits(val('fy')).slice(-2),tfn:onlyDigits(val('tfn')),noticeType:val('noticeType'),declarationDate:val('declarationDate'),contributionAmount:onlyDigits(val('contributionAmount')),deductionAmount:onlyDigits(val('deductionAmount')),previousClaimAmount:onlyDigits(val('previousClaimAmount')),declarationNameOverride:val('declarationNameOverride')};}
 function val(id){return document.getElementById(id).value||'';}
 async function loadPDF(){pdfDoc=await pdfjsLib.getDocument({data:b64ToBytes(TEMPLATE_B64)}).promise; await renderAllPages(); refreshOverlay();}
 async function renderAllPages(){const box=document.getElementById('pagebox'); box.innerHTML=''; pages=[]; for(let p=1;p<=pdfDoc.numPages;p++){let page=await pdfDoc.getPage(p);let vp=page.getViewport({scale:baseScale});let wrap=document.createElement('div');wrap.className='pageWrap';wrap.dataset.page=p;wrap.style.width=vp.width+'px';wrap.style.height=vp.height+'px';let canvas=document.createElement('canvas');canvas.className='pdfCanvas';canvas.width=vp.width;canvas.height=vp.height;wrap.appendChild(canvas);let overlay=document.createElement('div');overlay.className='overlay';wrap.appendChild(overlay);box.appendChild(wrap);await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise; pages[p]={wrap,overlay,vp};}}
 function textForKey(key,d){switch(key){case 'tfn': return d.tfn; case 'titleMr': return d.title==='Mr'?'X':''; case 'titleMrs': return d.title==='Mrs'?'X':''; case 'titleMiss': return d.title==='Miss'?'X':''; case 'titleMs': return d.title==='Ms'?'X':''; case 'family':return d.familyName.toUpperCase();case 'first':return d.firstName.toUpperCase();case 'other':return (d.otherNames||'').toUpperCase();case 'dobD':return onlyDigits(d.dob).slice(0,2);case 'dobM':return onlyDigits(d.dob).slice(2,4);case 'dobY':return onlyDigits(d.dob).slice(4,8);case 'addr1':return d.street.toUpperCase().replace(/[,.]/g,'');case 'addr2':return '';case 'suburb':return d.suburb.toUpperCase().replace(/[,.]/g,'');case 'state':return d.state.toUpperCase();case 'postcode':return d.postcode;case 'phone':return d.mobile;case 'fund1':return d.fund.toUpperCase().replace(/[,.]/g,'');case 'fund2':return '';case 'abn1':return d.abn;case 'member':return d.member;case 'usi':return d.usi;case 'noVariation':return d.noticeType==='original'?'X':'';case 'yesVariation':return d.noticeType==='variation'?'X':'';case 'fy':return d.fy||'26';case 'amount1':return (document.getElementById('fillAmounts').checked&&d.noticeType==='original')?d.contributionAmount:'';case 'amount2':return (document.getElementById('fillAmounts').checked&&d.noticeType==='original')?(d.deductionAmount||d.contributionAmount):'';case 'variationFy':return d.noticeType==='variation'?(d.fy||'26'):'';case 'variationAmount1':return (document.getElementById('fillAmounts').checked&&d.noticeType==='variation')?d.contributionAmount:'';case 'variationPrev':return (document.getElementById('fillAmounts').checked&&d.noticeType==='variation')?d.previousClaimAmount:'';case 'variationNow':return (document.getElementById('fillAmounts').checked&&d.noticeType==='variation')?(d.deductionAmount||d.contributionAmount):'';case 'declarationName':return document.getElementById('fillDeclareName').checked?(d.declarationNameOverride||d.fullName).toUpperCase():'';case 'declarationDateD':return onlyDigits(d.declarationDate).slice(0,2);case 'declarationDateM':return onlyDigits(d.declarationDate).slice(2,4);case 'declarationDateY':return onlyDigits(d.declarationDate).slice(4,8);}return '';}
-function refreshOverlay(){if(!pages.length)return; Object.values(pages).forEach(p=>p.overlay.innerHTML=''); const d=currentData(); Object.keys(coords).forEach(key=>{let c=coords[key], txt=textForKey(key,d); if(!txt)return; let pg=pages[c.p]; if(!pg)return; let div=document.createElement('div');div.className='ov';div.dataset.key=key;const shown=txt.split('').join(c.dx? ' ' : '');div.dataset.text=shown;div.textContent=shown; let x=c.x*baseScale; let y=(841.89-c.y)*baseScale; div.style.left=x+'px'; div.style.top=y+'px'; div.style.fontSize=(key==='declarationName'?12.5:13.5)*baseScale+'px'; div.addEventListener('mousedown',startDrag); div.addEventListener('click',()=>selectOv(div)); pg.overlay.appendChild(div); });}
+function refreshOverlay(){if(!pages.length)return; Object.values(pages).forEach(p=>p.overlay.innerHTML=''); const d=currentData(); Object.keys(coords).forEach(key=>{let c=coords[key], txt=textForKey(key,d); if(!txt)return; let pg=pages[c.p]; if(!pg)return; let div=document.createElement('div');div.className='ov';div.dataset.key=key;div.textContent=txt.split('').join(c.dx? ' ' : ''); let x=c.x*baseScale; let y=(841.89-c.y)*baseScale; div.style.left=x+'px'; div.style.top=y+'px'; div.style.fontSize=(key==='declarationName'?8.5:9.5)*baseScale+'px'; div.addEventListener('mousedown',startDrag); div.addEventListener('click',()=>selectOv(div)); pg.overlay.appendChild(div); });}
 function selectOv(div){document.querySelectorAll('.ov').forEach(x=>x.classList.remove('selected')); div.classList.add('selected'); if(!div.querySelector('.hint')){let h=document.createElement('span');h.className='hint';h.textContent=div.dataset.key;div.appendChild(h);} }
 function startDrag(e){e.preventDefault(); const div=e.currentTarget; selectOv(div); const key=div.dataset.key; const rect=div.parentElement.getBoundingClientRect(); activeDrag={div,key,startX:e.clientX,startY:e.clientY,origX:coords[key].x,origY:coords[key].y,rect}; window.addEventListener('mousemove',moveDrag); window.addEventListener('mouseup',endDrag);}
 function moveDrag(e){if(!activeDrag)return; let dx=(e.clientX-activeDrag.startX)/baseScale; let dy=-(e.clientY-activeDrag.startY)/baseScale; coords[activeDrag.key].x=+(activeDrag.origX+dx).toFixed(1); coords[activeDrag.key].y=+(activeDrag.origY+dy).toFixed(1); let c=coords[activeDrag.key]; activeDrag.div.style.left=(c.x*baseScale)+'px'; activeDrag.div.style.top=((841.89-c.y)*baseScale)+'px';}
 function endDrag(){window.removeEventListener('mousemove',moveDrag);window.removeEventListener('mouseup',endDrag);activeDrag=null;}
-
-function syncCoordsFromPreview(){
-  // Capture the exact dragged positions from the visible preview before generating the PDF.
-  // This makes manual drag-to-fix adjustments carry through to the downloaded PDF.
-  document.querySelectorAll('.ov').forEach(div=>{
-    const key=div.dataset.key;
-    if(!key || !coords[key]) return;
-    const wrap=div.closest('.pageWrap');
-    const pgNum=wrap ? Number(wrap.dataset.page) : coords[key].p;
-    const pageHeight = 841.89;
-    const left=parseFloat(div.style.left||'0');
-    const top=parseFloat(div.style.top||'0');
-    coords[key].p=pgNum || coords[key].p;
-    coords[key].x=+(left/baseScale).toFixed(1);
-    coords[key].y=+(pageHeight - (top/baseScale)).toFixed(1);
-  });
-}
-
-function drawBoxText(page,font,text,c,opt={}){text=(text||'').toString().toUpperCase(); const size=opt.size||11; if(!text)return; if(c.dx){for(let i=0;i<text.length && i<(opt.max||80);i++){const ch=text[i]; if(ch===' ') continue; page.drawText(ch,{x:c.x+i*c.dx+1.2,y:c.y,size,font});}} else page.drawText(text,{x:c.x,y:c.y,size,font});}
-async function generatePDF(){
-  // WYSIWYG download: the PDF is created from the visible preview canvas + dragged text overlays.
-  // This means whatever you drag into place on screen is exactly what is flattened into the downloaded PDF.
-  syncCoordsFromPreview();
-  const d=currentData();
-  document.getElementById('downloadStatus').innerHTML='Preparing exact preview PDF...';
-  const out=await PDFLib.PDFDocument.create();
-  const pageW=595.276, pageH=841.89;
-  for(let i=1;i<pages.length;i++){
-    const pg=pages[i]; if(!pg) continue;
-    const base=pg.wrap.querySelector('canvas.pdfCanvas');
-    const composed=document.createElement('canvas');
-    composed.width=base.width; composed.height=base.height;
-    const ctx=composed.getContext('2d');
-    ctx.drawImage(base,0,0);
-    const overlay=pg.overlay;
-    overlay.querySelectorAll('.ov').forEach(div=>{
-      const text=div.dataset.text || div.childNodes[0]?.nodeValue || '';
-      if(!text) return;
-      const key=div.dataset.key || '';
-      const fs=parseFloat(div.style.fontSize)||13.5;
-      const left=parseFloat(div.style.left)||0;
-      const top=parseFloat(div.style.top)||0;
-      ctx.save();
-      ctx.font='700 '+fs+'px Courier New, monospace';
-      ctx.fillStyle='#111111';
-      ctx.textBaseline='top';
-      // Tiny offset matches the browser overlay position and keeps text visually inside the boxes.
-      ctx.fillText(text,left,top);
-      ctx.restore();
-    });
-    const png=composed.toDataURL('image/png');
-    const img=await out.embedPng(png);
-    const page=out.addPage([pageW,pageH]);
-    page.drawImage(img,{x:0,y:0,width:pageW,height:pageH});
-  }
-  const pdfBytes=await out.save();
-  const blob=new Blob([pdfBytes],{type:'application/pdf'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='NOI_prefilled_'+(d.fullName||'client').replace(/\s+/g,'_')+'.pdf';
-  a.click();
-  document.getElementById('downloadStatus').innerHTML='<span class="ok">PDF generated from exact preview / dragged placements.</span>';
-}
+function drawBoxText(page,font,text,c,opt={}){text=(text||'').toString().toUpperCase(); const size=opt.size||9; if(!text)return; if(c.dx){for(let i=0;i<text.length && i<(opt.max||80);i++){const ch=text[i]; if(ch===' ') continue; page.drawText(ch,{x:c.x+i*c.dx+1.2,y:c.y,size,font});}} else page.drawText(text,{x:c.x,y:c.y,size,font});}
+async function generatePDF(){const d=currentData(); const bytes=b64ToBytes(TEMPLATE_B64); const out=await PDFLib.PDFDocument.load(bytes); const font=await out.embedFont(PDFLib.StandardFonts.CourierBold); const p1=out.getPage(0), p2=out.getPage(1); const fields=['tfn','titleMr','titleMrs','titleMiss','titleMs','family','first','other','dobD','dobM','dobY','addr1','addr2','suburb','state','postcode','phone','fund1','fund2','abn1','member','usi']; fields.forEach(k=>drawBoxText(p1,font,textForKey(k,d),coords[k],{size:9,max:60})); ['noVariation','yesVariation','fy','amount1','amount2','variationFy','variationAmount1','variationPrev','variationNow','declarationName','declarationDateD','declarationDateM','declarationDateY'].forEach(k=>drawBoxText(p2,font,textForKey(k,d),coords[k],{size:k==='declarationName'?8.5:9,max:50})); const pdfBytes=await out.save(); const blob=new Blob([pdfBytes],{type:'application/pdf'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='NOI_prefilled_'+(d.fullName||'client').replace(/\s+/g,'_')+'.pdf'; a.click(); document.getElementById('downloadStatus').innerHTML='<span class="ok">PDF generated.</span>';}
 function updateClientCard(){const d=currentData(); const card=document.getElementById('clientCard'); if(d.fullName){card.classList.remove('hidden');card.innerHTML=`<b>Selected:</b> ${d.fullName}<br>DOB: ${d.dob||'-'}<br>Super: ${d.fund||'-'}<br>Member: ${d.member||'-'}`;}}
 ['fullName','firstName','familyName','dob','mobile','email','street','suburb','state','postcode','fund','member','abn','usi','title','tfn','noticeType','fy','declarationDate','contributionAmount','deductionAmount','previousClaimAmount','declarationNameOverride','fillDeclareName','fillAmounts'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{updateClientCard();refreshOverlay();}));
 document.getElementById('refreshPreview').onclick=refreshOverlay; document.getElementById('resetCoords').onclick=()=>{coords=JSON.parse(JSON.stringify(defaultOffsets));refreshOverlay();}; document.getElementById('downloadPdf').onclick=generatePDF;
