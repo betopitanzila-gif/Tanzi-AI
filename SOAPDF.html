@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AFPG Auto Advice Pack Builder</title>
+<style>
+:root{--navy:#062a55;--gold:#f4b942;--bg:#f5f7fb;--card:#fff;--border:#d8e1ef;--text:#10233f;--muted:#667085;--green:#15803d;--red:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text)}
+header{background:linear-gradient(90deg,#04234a,#07396e);color:#fff;padding:18px 28px;display:flex;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:22px}
+header .sub{font-size:12px;opacity:.85}
+.wrap{padding:20px;display:grid;grid-template-columns:430px 1fr;gap:18px}
+.panel,.main{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 24px #071f4112}
+.panel{padding:18px;height:calc(100vh - 104px);overflow:auto}
+.main{padding:18px;min-height:calc(100vh - 104px)}
+.step{border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;background:#fbfdff}
+.step h2{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.num{background:var(--navy);color:white;border-radius:999px;width:26px;height:26px;display:inline-grid;place-items:center;font-size:13px}
+p{font-size:13px;color:var(--muted);line-height:1.45}
+input,select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin:6px 0 10px}
+button{border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
+.primary{background:var(--navy);color:white;width:100%}
+.secondary{background:#e8eef8;color:#0f2b50}
+.danger{background:#fee2e2;color:#991b1b}
+.small{font-size:12px;padding:7px 9px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.status{font-size:12px;margin-top:6px;line-height:1.4}
+.ok{color:var(--green);font-weight:700}
+.err{color:var(--red);font-weight:700}
+.warn{color:#92400e;font-weight:700}
+.list{margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow:hidden;max-height:230px;overflow-y:auto}
+.item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px;border-bottom:1px solid var(--border);align-items:center}
+.item:last-child{border-bottom:0}
+.item b{font-size:13px}.item span{font-size:11px;color:var(--muted)}
+.preview{height:520px;border:1px solid var(--border);border-radius:14px;background:#f8fafc;display:grid;place-items:center;overflow:hidden}
+.preview iframe{width:100%;height:100%;border:0}
+.note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px;border-radius:12px;font-size:12px;line-height:1.4;margin-top:12px}
+.checkline{display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0}
+.checkline input{width:auto;margin:0}
+.order{font-size:13px;background:#eef6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin:10px 0}
+.footer{font-size:11px;color:var(--muted);margin-top:10px}
+#convertAdviceBtn{margin-top:6px;width:100%}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>AFPG Auto Advice Pack Builder</h1>
+    <div class="sub">Upload Advice PDF → import FSCG/Profile ZIP folders → auto-detect → build final pack</div>
+  </div>
+  <div class="sub">Browser-based PDF pack generator</div>
+</header>
+
+<div class="wrap">
+<section class="panel">
+  <div class="step">
+    <h2><span class="num">1</span> Upload Advice PDF</h2>
+    <p>Upload the final advice document as PDF. The dashboard will read the PDF text and try to auto-select the investment profile and FSCG adviser profile.</p>
+    <input type="file" id="adviceFile" accept=".pdf,application/pdf" />
+    <div id="adviceStatus" class="status">No advice PDF selected.</div>
+    <button class="secondary" id="convertAdviceBtn" onclick="prepareAdvicePDF()">Read PDF / Auto-detect Profiles</button>
+    <div id="adviceReadyStatus" class="status"></div>
+    <div id="detectionStatus" class="status"></div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">2</span> FSCG / Adviser Profile Library</h2>
+    <p>Upload individual FSCG PDFs or bulk-upload a ZIP folder of FSCGs. Name each PDF with the adviser name, e.g. Christopher Cabrol FSCG.pdf.</p>
+    <input type="text" id="fscgName" placeholder="FSCG/adviser name, e.g. Matthew Harrington FSCG" />
+    <input type="file" id="fscgFile" accept="application/pdf,.pdf" />
+    <button class="secondary" onclick="saveFSCG()">Save / Update FSCG Profile</button>
+    <div class="note" style="margin-top:10px">
+      <b>Bulk import FSCGs:</b><br>
+      Upload a ZIP folder containing adviser FSCG PDFs. The PDF filenames will become the saved library names.
+    </div>
+    <input type="file" id="fscgZipFile" accept=".zip,application/zip,application/x-zip-compressed" />
+    <button class="secondary" onclick="importFSCGZip()">Import FSCG ZIP Folder</button>
+    <div id="fscgZipStatus" class="status">No FSCG ZIP imported yet.</div>
+    <select id="fscgSelect"></select>
+    <div id="fscgList" class="list"></div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">3</span> Investment Profile Library</h2>
+    <p>Upload individual investment profile PDFs or bulk-upload a ZIP folder of profiles. The dashboard will auto-match the SOA text against the saved profile names.</p>
+    <input type="text" id="atticusName" placeholder="Quarter name, e.g. Atticus Growth Q2-2026" />
+    <input type="file" id="atticusFile" accept="application/pdf,.pdf" />
+    <button class="secondary" onclick="saveAtticus()">Save / Update Investment Profile</button>
+    <div class="note" style="margin-top:10px">
+      <b>Bulk import investment profiles:</b><br>
+      Upload a ZIP folder containing Atticus/Lonsec investment profile PDFs. The PDF filenames will become the saved library names.
+    </div>
+    <input type="file" id="profileZipFile" accept=".zip,application/zip,application/x-zip-compressed" />
+    <button class="secondary" onclick="importProfileZip()">Import Investment Profile ZIP Folder</button>
+    <div id="profileZipStatus" class="status">No investment profile ZIP imported yet.</div>
+    <button class="secondary" onclick="window.open('https://www.lonsec.com.au/', '_blank')">Open Lonsec</button>
+    <div class="status">Use this to log into Lonsec manually if the required profile is not already saved in the dashboard, then upload the downloaded PDF above.</div>
+    <select id="atticusSelect"></select>
+    <div id="atticusList" class="list"></div>
+    <div class="note" style="margin-top:10px">
+      <b>One-off investment profile option:</b><br>
+      Use this when the required investment profile is not saved in the dashboard. It will be included for this pack only and will not replace the saved library.
+    </div>
+    <input type="file" id="oneOffProfileFile" accept="application/pdf,.pdf" />
+    <div id="oneOffProfileStatus" class="status">No one-off investment profile selected.</div>
+  </div>
+</section>
+
+<section class="main">
+  <div class="step">
+    <h2><span class="num">4</span> Authority to Proceed Extract</h2>
+    <p>After the advice PDF is read, the dashboard will ignore the Table of Contents, find the actual “Authority to Proceed” section page, and extract through to the Client Declaration and Adviser Declaration signature page.</p>
+    <div id="atpStatus" class="status">ATP section not detected yet.</div>
+    <button class="secondary" onclick="downloadATPExtract()">Download ATP Extract Only</button>
+    <label class="checkline"><input type="checkbox" id="includeATPExtract" /> Include ATP Extract in final pack</label>
+  </div>
+
+<div class="step">
+    <h2><span class="num">5</span> Generate Advice Pack</h2>
+    <div class="order">
+      Output order: <b>Advice Document</b> → <b>Selected Investment Profile</b> → <b>ATP Extract, optional</b> → <b>Selected FSCG Adviser Profile</b>
+    </div>
+
+    <label class="checkline"><input type="checkbox" id="includeAdvice" checked /> Include Advice Document</label>
+    <div id="adviceValidation" class="status">Advice PDF not ready yet.</div>
+
+    <label class="checkline"><input type="checkbox" id="includeAtticus" checked /> Include Investment Profile</label>
+    <label class="checkline"><input type="checkbox" id="includeFSCG" checked /> Include FSCG Adviser Profile</label>
+
+    <div class="row">
+      <input type="text" id="outputName" placeholder="Output filename e.g. Client Advice Pack.pdf" />
+      <button class="primary" onclick="combinePDFs()">Build Final Advice Pack</button>
+      <button class="secondary" onclick="resetPackBuilder()">Clear / New Client</button>
+      <button class="secondary" onclick="testSelectedPDFs()">Test Selected PDFs</button>
+    </div>
+    <div id="combineStatus" class="status"></div>
+  </div>
+
+  <div class="step">
+    <h2>Preview / Download</h2>
+    <div id="preview" class="preview"><p>Generated PDF preview will appear here.</p></div>
+  </div>
+
+  <div class="note">
+    GitHub-ready version: FSCGs and investment profiles are not embedded in the HTML. Upload ZIP folders once per browser/computer to build the local library. Final order: Advice Document → Investment Profile → optional ATP Extract → FSCG Adviser Profile.
+  </div>
+  <div class="footer">No client data is uploaded externally. Files are processed in your browser. Saved libraries are stored in the browser on the computer being used.</div>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+<script src="https://unpkg.com/docx-preview@0.3.2/dist/docx-preview.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+const PRELOADED_ATTICUS = [];
+const PRELOADED_FSCG = [];
+
+// This GitHub-ready version does not embed FSCG or investment profile PDFs.
+// Users can bulk-upload ZIP folders into the browser library.
+const DB_NAME = "AFPG_AdvicePackBuilder_DB_Light_v1";
+const DB_VERSION = 1;
+let db;
+let adviceBytes = null;
+let adviceFileName = "";
+let advicePendingFile = null;
+let advicePageCount = 0;
+let advicePageTexts = [];
+let atpBytes = null;
+let atpPageRange = null;
+let oneOffProfileBytes = null;
+let oneOffProfileName = '';
+let detectedClientFirstName = "";
+let detectedClientLastName = "";
+let detectedAdviceDate = "";
+let suggestedOutputFileName = "";
+let suggestedATPFileName = "";
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains("fscg")) d.createObjectStore("fscg", {keyPath:"name"});
+      if(!d.objectStoreNames.contains("atticus")) d.createObjectStore("atticus", {keyPath:"name"});
+      if(!d.objectStoreNames.contains("settings")) d.createObjectStore("settings", {keyPath:"key"});
+    };
+    req.onsuccess = e => { db=e.target.result; resolve(db); };
+    req.onerror = e => reject(e);
+  });
+}
+function tx(store, mode="readonly"){ return db.transaction(store, mode).objectStore(store); }
+function putItem(store, item){ return new Promise((resolve,reject)=>{ const r=tx(store,"readwrite").put(item); r.onsuccess=()=>resolve(); r.onerror=e=>reject(e); }); }
+function deleteItem(store, name){ return new Promise((resolve,reject)=>{ const r=tx(store,"readwrite").delete(name); r.onsuccess=()=>resolve(); r.onerror=e=>reject(e); }); }
+function getItem(store, name){ return new Promise((resolve,reject)=>{ const r=tx(store).get(name); r.onsuccess=()=>resolve(r.result); r.onerror=e=>reject(e); }); }
+function getAll(store){ return new Promise((resolve,reject)=>{ const r=tx(store).getAll(); r.onsuccess=()=>resolve(r.result||[]); r.onerror=e=>reject(e); }); }
+function fileToBytes(file){ return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=()=>resolve(new Uint8Array(reader.result)); reader.onerror=reject; reader.readAsArrayBuffer(file); }); }
+function b64ToBytes(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return bytes; }
+function prettySize(bytes){ if(!bytes)return ""; if(bytes<1024*1024)return Math.round(bytes/1024)+" KB"; return (bytes/1024/1024).toFixed(1)+" MB"; }
+function safePdfBytes(bytes){
+  // PDF.js can detach/consume ArrayBuffers. Always pass a fresh copy into PDF.js/PDF-Lib.
+  if(!bytes) return null;
+  if(bytes instanceof Uint8Array) return new Uint8Array(bytes);
+  return new Uint8Array(bytes);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function escapeAttr(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+async function seedLibrariesIfNeeded(){
+  // No embedded PDFs in GitHub-ready version.
+  // Users import FSCG/profile ZIP folders into their own browser library.
+  await putItem("settings", {key:"seededLightVersion", value:true});
+}
+
+async function docxToPdfBytes(file){
+  const arrayBuffer = await file.arrayBuffer();
+
+  /*
+    Word advice documents often contain text boxes, tables, headers/footers and positioned objects.
+    This uses docx-preview first. The render area must stay on the page while html2canvas captures it;
+    placing it far off-screen can create blank PDFs in Chrome.
+  */
+  const holder = document.createElement("div");
+  holder.id = "docxConversionWorkspace";
+  holder.style.position = "absolute";
+  holder.style.left = "0";
+  holder.style.top = "0";
+  holder.style.width = "900px";
+  holder.style.background = "white";
+  holder.style.color = "#111";
+  holder.style.zIndex = "-1";
+  holder.style.pointerEvents = "none";
+  document.body.appendChild(holder);
+
+  try {
+    if (window.docx && window.docx.renderAsync) {
+      await window.docx.renderAsync(arrayBuffer, holder, null, {
+        className: "docx",
+        inWrapper: true,
+        ignoreWidth: false,
+        ignoreHeight: false,
+        ignoreFonts: false,
+        breakPages: true,
+        ignoreLastRenderedPageBreak: false,
+        experimental: true,
+        trimXmlDeclaration: true,
+        useBase64URL: true,
+        renderHeaders: true,
+        renderFooters: true,
+        renderFootnotes: true,
+        renderEndnotes: true
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      const textCheck = (holder.innerText || "").replace(/\s+/g, "");
+      const imageCheck = holder.querySelectorAll("img, svg, canvas").length;
+      if (textCheck.length < 20 && imageCheck === 0) {
+        throw new Error("DOCX preview produced little or no readable content.");
+      }
+
+      const opt = {
+        margin: 0,
+        filename: "converted-advice.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 },
+        jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], before: ".docx-page" }
+      };
+
+      const pdfBlob = await html2pdf().set(opt).from(holder).outputPdf("blob");
+      const converted = new Uint8Array(await pdfBlob.arrayBuffer());
+
+      // Confirm the converted PDF is readable and has at least one page before allowing combine.
+      const testPdf = await PDFLib.PDFDocument.load(converted);
+      if (testPdf.getPageCount() < 1 || converted.length < 5000) {
+        throw new Error("Converted Word PDF appears blank or invalid.");
+      }
+      return converted;
+    }
+
+    throw new Error("docx-preview library not available.");
+  } catch (previewErr) {
+    console.warn("docx-preview failed, trying Mammoth fallback:", previewErr);
+
+    holder.innerHTML = "";
+    const result = await mammoth.convertToHtml({arrayBuffer}, {
+      styleMap: [
+        "p[style-name='Title'] => h1:fresh",
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh"
+      ]
+    });
+
+    const textCheck = (result.value || "").replace(/<[^>]*>/g, "").replace(/\s+/g, "");
+    if (textCheck.length < 20) {
+      throw new Error("The Word document could not be converted properly. It may use text boxes/embedded objects. Please save it as PDF first.");
+    }
+
+    holder.style.width = "794px";
+    holder.style.minHeight = "1123px";
+    holder.style.padding = "56px";
+    holder.style.fontFamily = "Arial, sans-serif";
+    holder.style.fontSize = "11pt";
+    holder.style.lineHeight = "1.35";
+    holder.innerHTML = `
+      <style>
+        h1{font-size:20pt;margin:0 0 14px;color:#062a55}
+        h2{font-size:15pt;margin:18px 0 10px;color:#062a55}
+        h3{font-size:13pt;margin:14px 0 8px}
+        table{border-collapse:collapse;width:100%;margin:10px 0}
+        td,th{border:1px solid #ccc;padding:5px;vertical-align:top}
+        p{margin:0 0 8px;color:#111}
+        img{max-width:100%;height:auto}
+        ul,ol{margin-top:0}
+      </style>
+      ${result.value}
+    `;
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const opt = {
+      margin: 0,
+      filename: "converted-advice.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"] }
+    };
+    const pdfBlob = await html2pdf().set(opt).from(holder).outputPdf("blob");
+    const converted = new Uint8Array(await pdfBlob.arrayBuffer());
+    const testPdf = await PDFLib.PDFDocument.load(converted);
+    if (testPdf.getPageCount() < 1 || converted.length < 5000) {
+      throw new Error("Converted Word PDF appears blank or invalid.");
+    }
+    return converted;
+  } finally {
+    document.body.removeChild(holder);
+  }
+}
+
+async function extractPdfPageTexts(bytes){
+  if(window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  // IMPORTANT: use a copy. PDF.js may detach the ArrayBuffer it receives, which can make
+  // the original Advice PDF become unusable for the final PDF merge.
+  const loadingTask = pdfjsLib.getDocument({data: safePdfBytes(bytes)});
+  const pdf = await loadingTask.promise;
+  const texts = [];
+  for(let i=1;i<=pdf.numPages;i++){
+    try{
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => item.str || "").join(" ");
+      texts.push(text);
+    } catch(pageErr){
+      console.warn("Text extraction failed on page", i, pageErr);
+      texts.push("");
+    }
+  }
+  return texts;
+}
+
+function normaliseText(s){
+  return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+
+function titleCaseName(name){
+  return String(name || "")
+    .toLowerCase()
+    .split(/[\s\-']+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function cleanFilePart(s){
+  return String(s || "")
+    .replace(/[\\/:*?"<>|]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractAdviceDateFromText(){
+  const firstPages = advicePageTexts.slice(0, 5).join("\n");
+  const datePatterns = [
+    /\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b/i,
+    /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/,
+    /\b(\d{1,2}-\d{1,2}-\d{4})\b/
+  ];
+
+  for(const pattern of datePatterns){
+    const match = firstPages.match(pattern);
+    if(match) return match[1].replace(/^(\d)\s/, "0$1 ");
+  }
+  return "";
+}
+
+function extractClientNameFromText(){
+  const firstPages = advicePageTexts.slice(0, 6).join("\n");
+
+  // Preferred Xplan/AFPG cover page format:
+  // Presented to:
+  // Peter Downie
+  let match = firstPages.match(/Presented\s+to:\s*[\r\n ]+([A-Z][A-Za-z' -]+?)(?:\r?\n|Prepared by|Representative|Claremont|Sydney|NSW|VIC|QLD|SA|WA|TAS|ACT|NT)/i);
+  if(match && match[1]){
+    return parseClientName(match[1]);
+  }
+
+  // Letter format:
+  // Mr Peter Downie
+  // Ms Jane Smith
+  match = firstPages.match(/\b(?:Mr|Mrs|Ms|Miss|Dr)\s+([A-Z][A-Za-z' -]+)\b/);
+  if(match && match[1]){
+    return parseClientName(match[1]);
+  }
+
+  // Fallback from filename if needed:
+  // ... Downie, Peter ...
+  match = (adviceFileName || "").match(/[-\s]([A-Za-z' -]+),\s*([A-Za-z' -]+)[-\s]/);
+  if(match){
+    return {first:titleCaseName(match[2]), last:titleCaseName(match[1])};
+  }
+
+  return {first:"", last:""};
+}
+
+function parseClientName(fullName){
+  let cleaned = String(fullName || "")
+    .replace(/\b(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)\b.*$/i, "")
+    .replace(/\bStatement of Advice\b.*$/i, "")
+    .replace(/\bPrepared by\b.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const parts = cleaned.split(" ").filter(Boolean);
+  if(parts.length < 2) return {first:titleCaseName(cleaned), last:""};
+
+  return {
+    first: titleCaseName(parts[0]),
+    last: titleCaseName(parts.slice(1).join(" "))
+  };
+}
+
+function updateSuggestedOutputFileName(){
+  const name = extractClientNameFromText();
+  const date = extractAdviceDateFromText();
+
+  detectedClientFirstName = name.first || "";
+  detectedClientLastName = name.last || "";
+  detectedAdviceDate = date || "";
+
+  if(detectedClientFirstName && detectedClientLastName && detectedAdviceDate){
+    suggestedOutputFileName = `Statement of Advice - ${cleanFilePart(detectedClientLastName)}, ${cleanFilePart(detectedClientFirstName)} - ${cleanFilePart(detectedAdviceDate)}.pdf`;
+
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2,'0');
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const yyyy = today.getFullYear();
+    const firstInitial = detectedClientFirstName.charAt(0).toUpperCase();
+
+    suggestedATPFileName = `Authority to Proceed - Signature Required - ${cleanFilePart(detectedClientLastName)}, ${firstInitial} - ${dd}-${mm}-${yyyy}.pdf`;
+
+    const output = document.getElementById("outputName");
+    if(output) output.value = suggestedOutputFileName;
+    return `<span class="ok">Output filename:</span> ${escapeHtml(suggestedOutputFileName)}`;
+  }
+
+  const missing = [];
+  if(!detectedClientFirstName || !detectedClientLastName) missing.push("client name");
+  if(!detectedAdviceDate) missing.push("SOA date");
+  return `<span class="warn">Could not fully detect ${escapeHtml(missing.join(" and "))} for filename.</span> You can edit the output filename manually.`;
+}
+
+function autoSelectByAdviceText(){
+  const fullText = normaliseText(advicePageTexts.join(" "));
+  const rawText = advicePageTexts.join("\n");
+  let adviserMatched = "";
+  let atticusMatched = "";
+
+  const fscgSelect = document.getElementById("fscgSelect");
+  const atticusSelect = document.getElementById("atticusSelect");
+
+  // Adviser/FSCG: match the select option name against the advice text.
+  for(const opt of [...fscgSelect.options]){
+    if(!opt.value) continue;
+    const optionName = opt.value;
+    const clean = normaliseText(optionName.replace(/fscg|financial services and credit guide|adviser profile|afpg|v 37|version 37/gi, " "));
+    const parts = clean.split(" ").filter(x => x.length > 1);
+    const likelyName = parts.slice(0, 3).join(" ");
+    if(likelyName.length > 4 && fullText.includes(likelyName)){
+      fscgSelect.value = opt.value;
+      adviserMatched = opt.value;
+      break;
+    }
+  }
+
+  // Atticus: longest/most specific match first.
+  const atticusOptions = [...atticusSelect.options].filter(o => o.value).sort((a,b)=>b.value.length-a.value.length);
+  for(const opt of atticusOptions){
+    const base = opt.value
+      .replace(/q[1-4][-\s]*20\d{2}/ig, "")
+      .replace(/atticus/ig, "atticus")
+      .trim();
+    const clean = normaliseText(base);
+    if(clean && fullText.includes(clean)){
+      atticusSelect.value = opt.value;
+      atticusMatched = opt.value;
+      break;
+    }
+  }
+
+  // Fallback Atticus keyword patterns
+  if(!atticusMatched){
+    const patterns = [
+      "atticus high growth index plus",
+      "atticus moderate conservative index plus",
+      "atticus balanced index plus",
+      "atticus growth index plus",
+      "atticus income defensive",
+      "atticus core balanced",
+      "atticus core growth",
+      "atticus high growth",
+      "atticus balanced",
+      "atticus growth"
+    ];
+    const found = patterns.find(p => fullText.includes(p));
+    if(found){
+      for(const opt of atticusOptions){
+        if(normaliseText(opt.value).includes(found)){
+          atticusSelect.value = opt.value;
+          atticusMatched = opt.value;
+          break;
+        }
+      }
+    }
+  }
+
+  const msg = [];
+  msg.push(adviserMatched ? `<span class="ok">Detected adviser/FSCG:</span> ${escapeHtml(adviserMatched)}` : `<span class="warn">Adviser/FSCG not confidently detected.</span> Please select manually.`);
+  msg.push(atticusMatched ? `<span class="ok">Detected investment profile:</span> ${escapeHtml(atticusMatched)}` : `<span class="warn">investment profile not confidently detected.</span> Please select manually or open Lonsec to download/upload it.`);
+  document.getElementById("detectionStatus").innerHTML = msg.join("<br>");
+}
+
+async function detectAndPrepareATP(){
+  atpBytes = null;
+  atpPageRange = null;
+  const status = document.getElementById("atpStatus");
+
+  if(!adviceBytes || !advicePageTexts.length){
+    status.innerHTML = "ATP section not detected yet.";
+    return;
+  }
+
+  const normPages = advicePageTexts.map(normaliseText);
+
+  /*
+    IMPORTANT:
+    The Table of Contents often contains the words "Authority to proceed",
+    but that is NOT the ATP section. We must ignore TOC/index pages and only
+    start from the actual ATP page.
+
+    Actual AFPG ATP page normally includes:
+    - heading: Authority to proceed
+    - "This section contains important information..."
+    - "We confirm that..."
+    - "We have read, understood and retained a copy..."
+  */
+
+  function isTableOfContentsPage(t){
+    return (
+      t.includes("table of contents") ||
+      (
+        t.includes("reasons for seeking advice") &&
+        t.includes("important") &&
+        t.includes("authority to proceed")
+      ) ||
+      (
+        t.includes("strategy recommendations") &&
+        t.includes("investment product recommendations") &&
+        t.includes("authority to proceed")
+      )
+    );
+  }
+
+  function isActualATPStartPage(t){
+    if(!(t.includes("authority to proceed") || t.includes("authority proceed"))) return false;
+    if(isTableOfContentsPage(t)) return false;
+
+    const hasATPBodyLanguage =
+      t.includes("this section contains important information") ||
+      t.includes("we confirm that") ||
+      t.includes("we have read understood") ||
+      t.includes("we have read and understood") ||
+      t.includes("retained a copy of this statement of advice") ||
+      t.includes("we have read understood and retained") ||
+      t.includes("financial services credit guide") ||
+      t.includes("product disclosure statements provided");
+
+    const hasRecommendationAcceptance =
+      t.includes("we wish to proceed") ||
+      t.includes("please select as appropriate") ||
+      t.includes("chosen to make the following variations") ||
+      t.includes("elected not to proceed");
+
+    return hasATPBodyLanguage || hasRecommendationAcceptance;
+  }
+
+  let start = -1;
+
+  // First pass: strict actual ATP page match.
+  for(let i = 0; i < normPages.length; i++){
+    if(isActualATPStartPage(normPages[i])){
+      start = i;
+      break;
+    }
+  }
+
+  // Second pass fallback: heading exists, not TOC, and appears later in the document.
+  // This prevents selecting the early Table of Contents page.
+  if(start < 0){
+    for(let i = 0; i < normPages.length; i++){
+      const t = normPages[i];
+      if((t.includes("authority to proceed") || t.includes("authority proceed")) && !isTableOfContentsPage(t) && i > 5){
+        start = i;
+        break;
+      }
+    }
+  }
+
+  if(start < 0){
+    status.innerHTML = `<span class="warn">Authority to Proceed start page not found.</span>`;
+    return;
+  }
+
+  /*
+    AFPG ATP end rule:
+    End on the page containing Client Declaration and Adviser Declaration,
+    or the proceed/variation/not proceed checkboxes plus signature fields.
+  */
+  const maxEnd = Math.min(normPages.length - 1, start + 5);
+  let end = -1;
+
+  for(let i = start; i <= maxEnd; i++){
+    const t = normPages[i];
+
+    const hasClientDeclaration =
+      t.includes("client declaration") ||
+      t.includes("client declarations");
+
+    const hasAdviserDeclaration =
+      t.includes("adviser declaration") ||
+      t.includes("advisor declaration");
+
+    const hasProceedOptions =
+      t.includes("please select as appropriate") ||
+      t.includes("we wish to proceed") ||
+      t.includes("chosen to make the following variations") ||
+      t.includes("elected not to proceed");
+
+    const hasSignature =
+      t.includes("signature") &&
+      (t.includes("date") || t.includes("client") || t.includes("adviser") || t.includes("advisor"));
+
+    if(hasClientDeclaration && hasAdviserDeclaration){
+      end = i;
+      break;
+    }
+
+    if(hasProceedOptions && hasSignature){
+      end = i;
+      break;
+    }
+
+    if(hasSignature && t.includes("client") && (t.includes("adviser") || t.includes("advisor"))){
+      end = i;
+      break;
+    }
+  }
+
+  // Fallback: ATP is generally 2–3 pages.
+  if(end < start){
+    end = Math.min(normPages.length - 1, start + 2);
+  }
+
+  // Safety cap.
+  if(end > start + 5){
+    end = start + 5;
+  }
+
+  const srcPdf = await PDFLib.PDFDocument.load(safePdfBytes(adviceBytes), {
+    ignoreEncryption: true,
+    updateMetadata: false
+  });
+
+  const out = await PDFLib.PDFDocument.create();
+  const pageIndexes = [];
+  for(let i = start; i <= end; i++){
+    pageIndexes.push(i);
+  }
+
+  const pages = await out.copyPages(srcPdf, pageIndexes);
+  pages.forEach(p => out.addPage(p));
+
+  atpBytes = await out.save({ useObjectStreams: false, addDefaultPage: false });
+  atpPageRange = {start:start + 1, end:end + 1};
+
+  const pageCount = end - start + 1;
+  status.innerHTML = `<span class="ok">ATP detected:</span> pages ${start + 1} to ${end + 1} (${pageCount} pages). Table of Contents pages are ignored.`;
+}
+
+async function downloadATPExtract(){
+  const status = document.getElementById("atpStatus");
+  if(!atpBytes){
+    status.innerHTML = `<span class="err">ATP extract is not ready.</span> Upload/read the advice PDF first.`;
+    return;
+  }
+  const blob = new Blob([atpBytes], {type:"application/pdf"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = suggestedATPFileName || "Authority to Proceed - Signature Required.pdf";
+  a.click();
+}
+
+document.getElementById("adviceFile").addEventListener("change", async e=>{
+  const file = e.target.files[0];
+  adviceBytes = null;
+  advicePageCount = 0;
+  advicePageTexts = [];
+  atpBytes = null;
+  atpPageRange = null;
+  advicePendingFile = file || null;
+  document.getElementById("adviceReadyStatus").innerHTML = "";
+  document.getElementById("detectionStatus").innerHTML = "";
+  document.getElementById("atpStatus").innerHTML = "ATP section not detected yet.";
+  document.getElementById("adviceValidation").innerHTML = "Advice PDF not ready yet.";
+
+  if(!file){
+    document.getElementById("adviceStatus").innerHTML = "No advice PDF selected.";
+    return;
+  }
+
+  adviceFileName = file.name;
+  if(!file.name.toLowerCase().endsWith(".pdf")){
+    document.getElementById("adviceStatus").innerHTML = `<span class="err">Please upload the advice document as PDF.</span>`;
+    return;
+  }
+
+  document.getElementById("adviceStatus").innerHTML = `<span class="warn">Selected:</span> ${escapeHtml(file.name)} (${prettySize(file.size)}). Click “Read PDF / Auto-detect Profiles”.`;
+
+  // Output filename will be auto-filled after the advice PDF is read.
+  document.getElementById("outputName").value = "";
+});
+
+async function prepareAdvicePDF(){
+  const status = document.getElementById("adviceReadyStatus");
+  const validation = document.getElementById("adviceValidation");
+  const preview = document.getElementById("preview");
+
+  if(!advicePendingFile){
+    status.innerHTML = `<span class="err">Please upload/select an Advice PDF first.</span>`;
+    return;
+  }
+
+  try{
+    status.innerHTML = `<span class="warn">Opening advice PDF...</span>`;
+    validation.innerHTML = "Opening advice PDF...";
+
+    const originalFileBytes = await fileToBytes(advicePendingFile);
+
+    // Validate using a copy.
+    const testPdf = await PDFLib.PDFDocument.load(safePdfBytes(originalFileBytes), { ignoreEncryption: true, updateMetadata: false });
+    advicePageCount = testPdf.getPageCount();
+
+    if(advicePageCount < 1 || originalFileBytes.length < 1000){
+      adviceBytes = null;
+      advicePageCount = 0;
+      status.innerHTML = `<span class="err">The advice PDF appears blank or invalid.</span>`;
+      validation.innerHTML = `<span class="err">Advice PDF not ready.</span>`;
+      return;
+    }
+
+    // Store a stable copy for the final merge. Do not pass this copy to PDF.js.
+    adviceBytes = safePdfBytes(originalFileBytes);
+
+    const blob = new Blob([safePdfBytes(adviceBytes)], {type:"application/pdf"});
+    const url = URL.createObjectURL(blob);
+    preview.innerHTML = `<iframe src="${url}"></iframe>`;
+    validation.innerHTML = `<span class="ok">Advice PDF ready.</span> Pages: ${advicePageCount}`;
+    status.innerHTML = `<span class="ok">Advice PDF ready.</span> Pages: ${advicePageCount}. You can now build the final pack.<br><span class="warn">Trying auto-detection...</span>`;
+
+    try{
+      // Text extraction uses a copy so the merge copy remains untouched.
+      advicePageTexts = await extractPdfPageTexts(originalFileBytes);
+      const fileNameMsg = updateSuggestedOutputFileName();
+      autoSelectByAdviceText();
+      document.getElementById("detectionStatus").innerHTML += "<br>" + fileNameMsg;
+
+      try{
+        await detectAndPrepareATP();
+      } catch(atpErr){
+        console.warn("ATP detection failed but advice PDF remains ready:", atpErr);
+        atpBytes = null;
+        atpPageRange = null;
+        document.getElementById("atpStatus").innerHTML = `<span class="warn">ATP extraction could not be completed automatically.</span> You can still build the pack without ATP Extract.`;
+      }
+
+      status.innerHTML = `<span class="ok">Advice PDF ready.</span> Pages: ${advicePageCount}. Auto-detection complete.`;
+    } catch(textErr){
+      console.warn("Text extraction failed but advice PDF remains ready:", textErr);
+      advicePageTexts = [];
+      atpBytes = null;
+      atpPageRange = null;
+      document.getElementById("detectionStatus").innerHTML =
+        `<span class="warn">Could not extract searchable text from this PDF.</span><br>` +
+        `The advice PDF is still ready to combine. Please manually select the investment profile and FSCG adviser profile.`;
+      document.getElementById("atpStatus").innerHTML =
+        `<span class="warn">ATP section could not be detected because searchable text was not available.</span>`;
+      status.innerHTML = `<span class="ok">Advice PDF ready.</span> Pages: ${advicePageCount}. Manual profile selection required.`;
+    }
+
+  } catch(err){
+    console.error(err);
+    adviceBytes = null;
+    advicePageCount = 0;
+    advicePageTexts = [];
+    atpBytes = null;
+    atpPageRange = null;
+    status.innerHTML = `<span class="err">Could not open this PDF.</span> It may be password protected, damaged, or not a standard PDF.`;
+    validation.innerHTML = `<span class="err">Advice PDF not ready.</span>`;
+  }
+}
+
+async function saveFSCG(){
+  const name = document.getElementById("fscgName").value.trim();
+  const file = document.getElementById("fscgFile").files[0];
+  if(!name || !file){ alert("Enter FSCG/adviser profile name and choose a PDF."); return; }
+  const bytes = await fileToBytes(file);
+  await putItem("fscg", {name, filename:file.name, bytes, size:file.size, updated:new Date().toLocaleString()});
+  document.getElementById("fscgName").value="";
+  document.getElementById("fscgFile").value="";
+  await refreshLists();
+}
+async function saveAtticus(){
+  const name = document.getElementById("atticusName").value.trim();
+  const file = document.getElementById("atticusFile").files[0];
+  if(!name || !file){ alert("Enter Investment profile name and choose a PDF."); return; }
+  const bytes = await fileToBytes(file);
+  await putItem("atticus", {name, filename:file.name, bytes, size:file.size, updated:new Date().toLocaleString()});
+  document.getElementById("atticusName").value="";
+  document.getElementById("atticusFile").value="";
+  await refreshLists();
+}
+async function removeLib(store, name){
+  if(!confirm("Delete this saved PDF from this browser library?")) return;
+  await deleteItem(store, name);
+  await refreshLists();
+}
+async function refreshLists(){
+  const fscg = await getAll("fscg");
+  const atticus = await getAll("atticus");
+  fillSelect("fscgSelect", fscg, "Select FSCG/adviser profile");
+  fillSelect("atticusSelect", atticus, "Select saved investment profile");
+  drawList("fscgList", fscg, "fscg");
+  drawList("atticusList", atticus, "atticus");
+}
+function fillSelect(id, items, placeholder){
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = `<option value="">${placeholder}</option>` + items.sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`<option value="${escapeHtml(x.name)}">${escapeHtml(x.name)}</option>`).join("");
+  if([...sel.options].some(o=>o.value===current)) sel.value=current;
+}
+function drawList(id, items, store){
+  const div = document.getElementById(id);
+  if(!items.length){ div.innerHTML = `<div class="item"><span>No saved PDFs yet.</span></div>`; return; }
+  div.innerHTML = items.sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`
+    <div class="item">
+      <div><b>${escapeHtml(x.name)}</b><br><span>${escapeHtml(x.filename)} • ${prettySize(x.size)} • ${escapeHtml(x.updated)}</span></div>
+      <button class="danger small" onclick="removeLib('${store}','${escapeAttr(x.name)}')">Delete</button>
+    </div>`).join("");
+}
+async function appendPDF(targetDoc, bytes, label){
+  try{
+    const src = await PDFLib.PDFDocument.load(safePdfBytes(bytes), {
+      ignoreEncryption: true,
+      updateMetadata: false
+    });
+    const pageIndices = src.getPageIndices();
+    if(!pageIndices || pageIndices.length === 0){
+      throw new Error("No pages found");
+    }
+    const pages = await targetDoc.copyPages(src, pageIndices);
+    pages.forEach(p=>targetDoc.addPage(p));
+    return pageIndices.length;
+  } catch(err){
+    console.error("Failed to append PDF:", label, err);
+    throw new Error((label || "Selected PDF") + " could not be added. It may be password protected, restricted, damaged, or incompatible.");
+  }
+}
+
+async function getPdfPageCountFromBytes(bytes, label){
+  try{
+    const src = await PDFLib.PDFDocument.load(safePdfBytes(bytes), {
+      ignoreEncryption: true,
+      updateMetadata: false
+    });
+    const count = src.getPageCount();
+    if(!count || count < 1){
+      throw new Error(label + " opened but has 0 pages.");
+    }
+    return count;
+  } catch(err){
+    console.warn("Could not count pages for", label, err);
+    return null;
+  }
+}
+
+function pageLine(label, count){
+  if(count === null || count === undefined || count < 1){
+    return `${label}: could not read pages ✗`;
+  }
+  return `${label}: ${count} pages ✓`;
+}
+
+async function testSelectedPDFs(){
+  const status = document.getElementById("combineStatus");
+  const lines = [];
+  try{
+    if(document.getElementById("includeAdvice").checked){
+      if(adviceBytes){
+        const count = await getPdfPageCountFromBytes(adviceBytes, "Advice Document");
+        lines.push(pageLine("Advice Document", count));
+      } else {
+        lines.push("Advice Document: not ready ✗");
+      }
+    }
+    if(document.getElementById("includeAtticus").checked){
+      if(oneOffProfileBytes){
+        const count = await getPdfPageCountFromBytes(oneOffProfileBytes, "One-off Investment Profile");
+        lines.push(pageLine("One-off Investment Profile: " + oneOffProfileName, count));
+      } else {
+        const name = document.getElementById("atticusSelect").value;
+        if(name){
+          const item = await getItem("atticus", name);
+          if(item){
+            const count = await getPdfPageCountFromBytes(item.bytes, "Investment Profile");
+            lines.push(pageLine("Investment Profile: " + name, count));
+          } else {
+            lines.push("Investment Profile: missing ✗");
+          }
+        } else {
+          lines.push("Investment Profile: not selected ✗");
+        }
+      }
+    }
+    if(document.getElementById("includeATPExtract").checked){
+      if(atpBytes){
+        const count = await getPdfPageCountFromBytes(atpBytes, "ATP");
+        lines.push(pageLine("ATP Extract", count));
+      } else {
+        lines.push("ATP Extract: not ready ✗");
+      }
+    }
+    if(document.getElementById("includeFSCG").checked){
+      const name = document.getElementById("fscgSelect").value;
+      if(name){
+        const item = await getItem("fscg", name);
+        if(item){
+          const count = await getPdfPageCountFromBytes(item.bytes, "FSCG");
+          lines.push(pageLine("FSCG: " + name, count));
+        } else {
+          lines.push("FSCG: missing ✗");
+        }
+      } else {
+        lines.push("FSCG: not selected ✗");
+      }
+    }
+    status.innerHTML = lines.map(escapeHtml).join("<br>");
+  } catch(err){
+    status.innerHTML = `<span class="err">Test failed:</span> ${escapeHtml(err.message || String(err))}`;
+  }
+}
+
+async function combinePDFs(){
+  const status = document.getElementById("combineStatus");
+  status.innerHTML = "";
+
+  const includeAdvice = document.getElementById("includeAdvice").checked;
+  const includeFSCG = document.getElementById("includeFSCG").checked;
+  const includeAtticus = document.getElementById("includeAtticus").checked;
+  const includeATPExtract = document.getElementById("includeATPExtract").checked;
+  const fscgName = document.getElementById("fscgSelect").value;
+  const atticusName = document.getElementById("atticusSelect").value;
+
+  if(includeAdvice && !adviceBytes){
+    status.innerHTML = `<span class="err">Advice document is ticked, but the Advice PDF is not ready.</span> Click “Read PDF / Auto-detect Profiles” first.`;
+    return;
+  }
+  if(includeATPExtract && !atpBytes){
+    status.innerHTML = `<span class="err">ATP Extract is ticked, but it has not been detected.</span> Untick ATP Extract or download/upload a separate ATP PDF.`;
+    return;
+  }
+  if(includeFSCG && !fscgName){
+    status.innerHTML = `<span class="err">Please select an FSCG/adviser profile or untick include FSCG.</span>`;
+    return;
+  }
+  if(includeAtticus && !atticusName && !oneOffProfileBytes){
+    status.innerHTML = `<span class="err">Please select a saved investment profile, upload a one-off investment profile, or untick include Investment Profile.</span>`;
+    return;
+  }
+  if(!includeAdvice && !includeAtticus && !includeATPExtract && !includeFSCG){
+    status.innerHTML = `<span class="err">Please tick at least one document to include.</span>`;
+    return;
+  }
+
+  try{
+    status.innerHTML = `<span class="warn">Building final PDF...</span>`;
+    const out = await PDFLib.PDFDocument.create();
+    const added = [];
+
+    // Required order: Advice first, Atticus second, ATP extract optional, FSCG last.
+    if(includeAdvice){
+      const count = await appendPDF(out, adviceBytes, "Advice Document");
+      added.push(`Advice Document (${count} pages)`);
+    }
+
+    if(includeAtticus){
+      if(oneOffProfileBytes){
+        const count = await appendPDF(out, oneOffProfileBytes, "One-off Investment Profile: " + oneOffProfileName);
+        added.push(`One-off Investment Profile (${count} pages)`);
+      } else {
+        const att = await getItem("atticus", atticusName);
+        if(!att || !att.bytes) throw new Error("Selected investment profile is missing from the browser library. Please re-upload it, or use the one-off investment profile upload.");
+        const count = await appendPDF(out, att.bytes, "Investment Profile: " + atticusName);
+        added.push(`Investment Profile (${count} pages)`);
+      }
+    }
+
+    if(includeATPExtract){
+      const count = await appendPDF(out, atpBytes, "Authority to Proceed Extract");
+      added.push(`ATP Extract (${count} pages)`);
+    }
+
+    if(includeFSCG){
+      const fscg = await getItem("fscg", fscgName);
+      if(!fscg || !fscg.bytes) throw new Error("Selected FSCG profile is missing from the browser library. Please re-upload it.");
+      const count = await appendPDF(out, fscg.bytes, "FSCG Adviser Profile: " + fscgName);
+      added.push(`FSCG Adviser Profile (${count} pages)`);
+    }
+
+    const totalBeforeSave = out.getPageCount();
+    if(totalBeforeSave < 1){
+      throw new Error("No pages were added to the final PDF.");
+    }
+
+    const mergedBytes = await out.save({ useObjectStreams: false, addDefaultPage: false });
+    const finalPdf = await PDFLib.PDFDocument.load(safePdfBytes(mergedBytes), { ignoreEncryption: true, updateMetadata: false });
+    const totalPages = finalPdf.getPageCount();
+
+    const blob = new Blob([mergedBytes], {type:"application/pdf"});
+    const url = URL.createObjectURL(blob);
+    const name = (document.getElementById("outputName").value.trim() || suggestedOutputFileName || "AFPG Advice Pack.pdf").replace(/[\\/:*?"<>|]+/g,"-");
+
+    document.getElementById("preview").innerHTML = `<iframe src="${url}"></iframe>`;
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.click();
+
+    status.innerHTML = `<span class="ok">Done.</span> Downloaded: ${escapeHtml(name)}<br>Total pages: ${totalPages}<br>${added.map(escapeHtml).join("<br>")}`;
+  } catch(err){
+    console.error(err);
+    status.innerHTML = `<span class="err">Could not build final PDF.</span><br>${escapeHtml(err.message || String(err))}<br><br>Try unticking ATP Extract first. If it still fails, re-upload the selected Atticus or FSCG PDF in the library section.`;
+  }
+}
+
+const oneOffInput = document.getElementById("oneOffProfileFile");
+if(oneOffInput){
+  oneOffInput.addEventListener("change", async e=>{
+    const file = e.target.files[0];
+    oneOffProfileBytes = null;
+    oneOffProfileName = "";
+    const st = document.getElementById("oneOffProfileStatus");
+    if(!file){
+      st.innerHTML = "No one-off investment profile selected.";
+      return;
+    }
+    try{
+      if(!file.name.toLowerCase().endsWith(".pdf")){
+        st.innerHTML = `<span class="err">Please upload the investment profile as PDF.</span>`;
+        return;
+      }
+      const bytes = await fileToBytes(file);
+      const pages = await getPdfPageCountFromBytes(bytes, "One-off Investment Profile");
+      if(!pages || pages < 1){
+        st.innerHTML = `<span class="err">Could not read this investment profile PDF.</span>`;
+        return;
+      }
+      oneOffProfileBytes = safePdfBytes(bytes);
+      oneOffProfileName = file.name;
+      st.innerHTML = `<span class="ok">One-off investment profile ready:</span> ${escapeHtml(file.name)} (${pages} pages). This will override the saved investment profile selection for this pack.`;
+    } catch(err){
+      console.error(err);
+      st.innerHTML = `<span class="err">Could not load the one-off investment profile.</span>`;
+    }
+  });
+}
+
+
+function baseNameFromZipPath(path){
+  const file = String(path || "").split("/").pop();
+  return file.replace(/\.pdf$/i, "").replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function importZipToLibrary(inputId, statusId, storeName, label){
+  const input = document.getElementById(inputId);
+  const status = document.getElementById(statusId);
+  if(!input || !input.files || !input.files[0]){
+    if(status) status.innerHTML = `<span class="err">Please choose a ZIP file first.</span>`;
+    return;
+  }
+  if(!window.JSZip){
+    if(status) status.innerHTML = `<span class="err">ZIP library could not load. Check your internet connection and reload the dashboard.</span>`;
+    return;
+  }
+
+  try{
+    status.innerHTML = `<span class="warn">Importing ${label} ZIP...</span>`;
+    const zip = await JSZip.loadAsync(input.files[0]);
+    let imported = 0;
+    let skipped = 0;
+
+    const entries = Object.values(zip.files);
+    for(const entry of entries){
+      if(entry.dir) continue;
+      if(!entry.name.toLowerCase().endsWith(".pdf")){
+        skipped++;
+        continue;
+      }
+
+      const bytes = new Uint8Array(await entry.async("arraybuffer"));
+      const name = baseNameFromZipPath(entry.name);
+      if(!name){
+        skipped++;
+        continue;
+      }
+
+      await putItem(storeName, {
+        name,
+        filename: entry.name.split("/").pop(),
+        bytes,
+        size: bytes.length,
+        updated: new Date().toLocaleString()
+      });
+      imported++;
+    }
+
+    await refreshLists();
+    status.innerHTML = `<span class="ok">Imported ${imported} ${label} PDF(s).</span>${skipped ? " Skipped " + skipped + " non-PDF file(s)." : ""}`;
+    input.value = "";
+  } catch(err){
+    console.error(err);
+    if(status) status.innerHTML = `<span class="err">Could not import ZIP.</span> Make sure it contains PDF files and is not corrupted.`;
+  }
+}
+
+async function importFSCGZip(){
+  await importZipToLibrary("fscgZipFile", "fscgZipStatus", "fscg", "FSCG");
+}
+
+async function importProfileZip(){
+  await importZipToLibrary("profileZipFile", "profileZipStatus", "atticus", "investment profile");
+}
+
+function resetPackBuilder(){
+  // Clear uploaded advice file
+  const adviceInput = document.getElementById("adviceFile");
+  if(adviceInput) adviceInput.value = "";
+
+  // Clear one-off profile file
+  const oneOff = document.getElementById("oneOffProfileFile");
+  if(oneOff) oneOff.value = "";
+
+  // Reset advice variables
+  adviceBytes = null;
+  adviceFileName = "";
+  advicePendingFile = null;
+  advicePageCount = 0;
+  advicePageTexts = [];
+
+  // Reset ATP variables
+  atpBytes = null;
+  atpPageRange = null;
+
+  // Reset one-off investment profile variables
+  oneOffProfileBytes = null;
+  oneOffProfileName = "";
+  detectedClientFirstName = "";
+  detectedClientLastName = "";
+  detectedAdviceDate = "";
+  suggestedOutputFileName = "";
+  suggestedATPFileName = "";
+
+  // Reset dropdown selections
+  const fscgSelect = document.getElementById("fscgSelect");
+  if(fscgSelect) fscgSelect.selectedIndex = 0;
+
+  const atticusSelect = document.getElementById("atticusSelect");
+  if(atticusSelect) atticusSelect.selectedIndex = 0;
+
+  // Reset checkboxes
+  const includeAdvice = document.getElementById("includeAdvice");
+  if(includeAdvice) includeAdvice.checked = true;
+
+  const includeAtticus = document.getElementById("includeAtticus");
+  if(includeAtticus) includeAtticus.checked = true;
+
+  const includeFSCG = document.getElementById("includeFSCG");
+  if(includeFSCG) includeFSCG.checked = true;
+
+  const includeATP = document.getElementById("includeATPExtract");
+  if(includeATP) includeATP.checked = false;
+
+  // Reset status messages
+  const adviceStatus = document.getElementById("adviceStatus");
+  if(adviceStatus) adviceStatus.innerHTML = "No advice PDF selected.";
+
+  const adviceReadyStatus = document.getElementById("adviceReadyStatus");
+  if(adviceReadyStatus) adviceReadyStatus.innerHTML = "";
+
+  const detectionStatus = document.getElementById("detectionStatus");
+  if(detectionStatus) detectionStatus.innerHTML = "";
+
+  const adviceValidation = document.getElementById("adviceValidation");
+  if(adviceValidation) adviceValidation.innerHTML = "Advice PDF not ready yet.";
+
+  const atpStatus = document.getElementById("atpStatus");
+  if(atpStatus) atpStatus.innerHTML = "ATP section not detected yet.";
+
+  const combineStatus = document.getElementById("combineStatus");
+  if(combineStatus) combineStatus.innerHTML = "";
+
+  const oneOffStatus = document.getElementById("oneOffProfileStatus");
+  if(oneOffStatus) oneOffStatus.innerHTML = "No one-off investment profile selected.";
+
+  // Clear output name
+  const outputName = document.getElementById("outputName");
+  if(outputName) outputName.value = "";
+
+  // Clear preview
+  const preview = document.getElementById("preview");
+  if(preview) preview.innerHTML = "<p>Generated PDF preview will appear here.</p>";
+
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+openDB().then(seedLibrariesIfNeeded).then(refreshLists);
+</script>
+</body>
+</html>
