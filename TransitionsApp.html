@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AFPG Simple Transition Tracker</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f5f7fb;color:#1f2937}
+.header{background:#102a43;color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+.header h1{margin:0;font-size:22px} .sub{opacity:.8;font-size:13px;margin-top:3px}
+.wrap{display:flex;min-height:calc(100vh - 72px)} .side{width:245px;background:white;border-right:1px solid #e5e7eb;padding:16px}
+.side h3{margin:0 0 12px;font-size:14px;color:#4b5563;text-transform:uppercase;letter-spacing:.05em}
+.tab{display:block;width:100%;text-align:left;border:0;background:#f3f4f6;margin:8px 0;padding:12px;border-radius:10px;cursor:pointer;font-size:15px}
+.tab.active{background:#dbeafe;color:#1d4ed8;font-weight:700} .main{flex:1;padding:22px;overflow:auto}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+.card{background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card .num{font-size:25px;font-weight:800;margin-top:6px} .card .label{font-size:13px;color:#6b7280}
+.toolbar{display:flex;gap:10px;align-items:center;margin:12px 0 16px;flex-wrap:wrap}
+button{border:0;border-radius:9px;padding:10px 13px;background:#2563eb;color:white;cursor:pointer;font-weight:600}
+button.secondary{background:#e5e7eb;color:#374151} button.danger{background:#dc2626}
+input,select,textarea{border:1px solid #d1d5db;border-radius:8px;padding:8px;width:100%;font:inherit;background:white}
+.search{max-width:360px} table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden}
+th{background:#f9fafb;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#4b5563;padding:10px;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #f1f5f9;vertical-align:top} tr:last-child td{border-bottom:0}
+.provider{font-weight:700;min-width:190px} .wide{min-width:210px} .stage{min-width:180px}
+.progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:6px} .bar{height:100%;background:#2563eb}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:#eef2ff;color:#3730a3;margin-left:8px}
+.small{font-size:12px;color:#6b7280} .modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex} .modalbox{background:white;border-radius:16px;padding:20px;max-width:760px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} label{font-size:12px;font-weight:700;color:#4b5563} .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.empty{background:white;border:1px dashed #cbd5e1;border-radius:14px;padding:24px;text-align:center;color:#64748b}
+@media(max-width:900px){.wrap{display:block}.side{width:100%;border-right:0;border-bottom:1px solid #e5e7eb}.cards{grid-template-columns:1fr 1fr} table{font-size:13px}}
+</style>
+</head>
+<body>
+<div class="header">
+ <div><h1>AFPG Simple Transition Tracker</h1><div class="sub">Provider names are preloaded for Praescius, CPW and Chalmers. Update codes and stages as work progresses.</div></div>
+ <div class="small" style="color:#cbd5e1">Auto-saves in this browser</div>
+</div>
+<div class="wrap">
+ <aside class="side">
+   <h3>Acquisitions</h3>
+   <div id="tabs"></div>
+   <button class="secondary" style="width:100%;margin-top:12px" onclick="resetData()">Reset to preloaded list</button>
+ </aside>
+ <main class="main">
+   <h2 id="title" style="margin:0 0 4px"></h2>
+   <div class="small" id="summaryText"></div>
+   <div class="cards" id="cards"></div>
+   <div class="toolbar">
+     <button onclick="openAddModal()">+ Add Provider</button>
+     <button class="secondary" onclick="exportCsv()">Export CSV</button>
+     <input class="search" id="search" placeholder="Search provider, code or notes..." oninput="renderTable()">
+   </div>
+   <div id="tableWrap"></div>
+ </main>
+</div>
+
+<div class="modal" id="modal">
+ <div class="modalbox">
+   <h2 style="margin-top:0">Add Provider</h2>
+   <div class="grid">
+     <div><label>Provider Name</label><input id="newProvider"></div>
+     <div><label>Stage</label><select id="newStage"></select></div>
+     <div><label>Old Dealer Code</label><input id="newOldDealer"></div>
+     <div><label>Old Adviser Code(s)</label><input id="newOldAdviser"></div>
+     <div><label>New Dealer Code</label><input id="newNewDealer"></div>
+     <div><label>New Adviser / Corporate Code</label><input id="newNewAdviser"></div>
+     <div><label>Owner</label><input id="newOwner"></div>
+     <div><label>Staff Access</label><input id="newStaff"></div>
+     <div style="grid-column:1/-1"><label>Notes</label><textarea id="newNotes" rows="3"></textarea></div>
+   </div>
+   <div class="actions">
+     <button class="secondary" onclick="closeAddModal()">Cancel</button>
+     <button onclick="addProvider()">Save Provider</button>
+   </div>
+ </div>
+</div>
+
+<script>
+const STAGES = ["Not Started", "Acceptance Letter Sent", "Release Letter Sent", "Waiting for New Codes", "Follow Up", "New Codes Received", "Portal Registration", "Dealer Group Access", "Staff Access", "Client Transfers", "Validation", "Complete"];
+const DEFAULT_DATA = {"Praescius": [{"id": "praescius_aia", "acquisition": "Praescius", "provider": "AIA", "oldDealer": "4H0000401", "oldAdviser": "4H0900401", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_amm_australian_money_market", "acquisition": "Praescius", "provider": "AMM (Australian Money Market)", "oldDealer": "", "oldAdviser": "PRCQLD", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_asteron_life", "acquisition": "Praescius", "provider": "Asteron Life", "oldDealer": "55671", "oldAdviser": "65507", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_australian_unity_investments", "acquisition": "Praescius", "provider": "Australian Unity Investments", "oldDealer": "359873", "oldAdviser": "102380", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_axa", "acquisition": "Praescius", "provider": "AXA", "oldDealer": "L81O1801", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Holdings Pty Ltd"}, {"id": "praescius_bell_potter", "acquisition": "Praescius", "provider": "Bell Potter", "oldDealer": "E5593", "oldAdviser": "AN095", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_bt_panorama_formally_bt_wrap", "acquisition": "Praescius", "provider": "BT Panorama (formally BT Wrap)", "oldDealer": "F0510350 / 712464724", "oldAdviser": "202058859 / 201618780", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_challenger_fidante", "acquisition": "Praescius", "provider": "Challenger (Fidante)", "oldDealer": "605771", "oldAdviser": "615626 / 616909", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd / Matthew Harrington"}, {"id": "praescius_colonial_first_state_cfs_firstchoice_platform", "acquisition": "Praescius", "provider": "Colonial First State (CFS) FirstChoice Platform", "oldDealer": "2697", "oldAdviser": "112", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_comminsure", "acquisition": "Praescius", "provider": "CommInsure", "oldDealer": "90068 / A7410", "oldAdviser": "E347P", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd / Matthew Harrington"}, {"id": "praescius_desktop_broker_bell_ex_macquarie_online_trading", "acquisition": "Praescius", "provider": "Desktop Broker (Bell - ex Macquarie Online Trading)", "oldDealer": "2488", "oldAdviser": "2971 / 104564", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd / Matthew Harrington"}, {"id": "praescius_dominion_oasis", "acquisition": "Praescius", "provider": "Dominion (Oasis)", "oldDealer": "8032", "oldAdviser": "G495", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_futurity_investment_group_limited", "acquisition": "Praescius", "provider": "Futurity Investment Group Limited", "oldDealer": "AD003985", "oldAdviser": "AD003985", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_generation_life", "acquisition": "Praescius", "provider": "Generation Life", "oldDealer": "TLPFH", "oldAdviser": "ALPRFGPL", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_ioof_ioof_product_group", "acquisition": "Praescius", "provider": "IOOF - IOOF Product Group", "oldDealer": "358549 / 5721", "oldAdviser": "439224 / L876", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_macquarie", "acquisition": "Praescius", "provider": "Macquarie", "oldDealer": "B730 & B731", "oldAdviser": "PRAESF & PRAEFG", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_metlife", "acquisition": "Praescius", "provider": "Metlife", "oldDealer": "3377437", "oldAdviser": "4003099", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group P/L"}, {"id": "praescius_mlc_life_insurance", "acquisition": "Praescius", "provider": "MLC Life Insurance", "oldDealer": "SB1240240", "oldAdviser": "SB4526081", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group P/L"}, {"id": "praescius_mlc_life_insurance", "acquisition": "Praescius", "provider": "MLC Life Insurance", "oldDealer": "SB1240240", "oldAdviser": "SB2113256", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Brisbane"}, {"id": "praescius_mlc_masterkey_and_business_super", "acquisition": "Praescius", "provider": "MLC MasterKey and Business Super", "oldDealer": "L200-P0NPG", "oldAdviser": "L201-P1JBK", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_mlc_wrap_navigator", "acquisition": "Praescius", "provider": "MLC Wrap/Navigator", "oldDealer": "632416", "oldAdviser": "651747", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_neos_life", "acquisition": "Praescius", "provider": "NEOS Life", "oldDealer": "D0160", "oldAdviser": "a7416", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_netwealth", "acquisition": "Praescius", "provider": "Netwealth", "oldDealer": "PRAEFH", "oldAdviser": "5283", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial"}, {"id": "praescius_onepath_optimix", "acquisition": "Praescius", "provider": "OnePath (Optimix)", "oldDealer": "", "oldAdviser": "2102556 & 2102558", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_onepath_zurich", "acquisition": "Praescius", "provider": "OnePath (Zurich)", "oldDealer": "2071224", "oldAdviser": "3890", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_perpetual", "acquisition": "Praescius", "provider": "Perpetual", "oldDealer": "CH200015942", "oldAdviser": "AD0012690001", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial NT Pty Ltd"}, {"id": "praescius_praemium", "acquisition": "Praescius", "provider": "Praemium", "oldDealer": "", "oldAdviser": "Praescius_group", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_tal", "acquisition": "Praescius", "provider": "TAL", "oldDealer": "86205", "oldAdviser": "96279", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_zurich", "acquisition": "Praescius", "provider": "Zurich", "oldDealer": "QT63", "oldAdviser": "Y11N / 3890", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}, {"id": "praescius_zurich_life_previously_macquarie_life", "acquisition": "Praescius", "provider": "Zurich Life (previously Macquarie Life)", "oldDealer": "B730", "oldAdviser": "AF95", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Holdings Pty Ltd"}, {"id": "praescius_zurich_life_previously_macquarie_life", "acquisition": "Praescius", "provider": "Zurich Life (previously Macquarie Life)", "oldDealer": "", "oldAdviser": "3351 - Helen's new code", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": "Listed adviser: Praescius Financial Group Pty Ltd"}], "CPW": [{"id": "cpw_aia", "acquisition": "CPW", "provider": "AIA", "oldDealer": "", "oldAdviser": "Michael Hiscock: AAKS4; emailed received on 21/01", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_aia_australia", "acquisition": "CPW", "provider": "AIA Australia", "oldDealer": "", "oldAdviser": "Stephen Garrett: 2B2702426", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_amp", "acquisition": "CPW", "provider": "AMP", "oldDealer": "", "oldAdviser": "Michael Hiscock: FAANN-U", "newDealer": "", "newAdviser": "", "stage": "Complete", "owner": "", "staffAccess": "", "notes": "Michael: User ID : FAANN-U"}, {"id": "cpw_acenda", "acquisition": "CPW", "provider": "Acenda", "oldDealer": "", "oldAdviser": "Michael Hiscock: Account: MICHAEL GORDON HISCOCK - SB1253183", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_asteron", "acquisition": "CPW", "provider": "Asteron", "oldDealer": "", "oldAdviser": "Michael Hiscock: 15359\nStephen Garrett: 19090", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_bt_panorama", "acquisition": "CPW", "provider": "BT Panorama", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "202065568", "stage": "Complete", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_cfs", "acquisition": "CPW", "provider": "CFS", "oldDealer": "", "oldAdviser": "Michael Hiscock: Licensee Code: 1641 and Adviser Code - 0135\nStephen Garrett: Licensee Code - 1641 and Adviser Code - 0134", "newDealer": "", "newAdviser": "", "stage": "Complete", "owner": "", "staffAccess": "", "notes": "Michael: OIN - 11733515; Stephen: OIN - 11733491"}, {"id": "cpw_comminsure", "acquisition": "CPW", "provider": "CommInsure", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "Request sent to CommInsure (au@aegon.com) today.", "stage": "Waiting for Provider", "owner": "", "staffAccess": "", "notes": "Afpg: Account: STEPHEN JOHN STUART GARRETT - SB1253224"}, {"id": "cpw_ioof_expand", "acquisition": "CPW", "provider": "IOOF/Expand", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "Request sent to Expand/BDM Rebecca on 18/01", "stage": "Waiting for Provider", "owner": "", "staffAccess": "", "notes": "Afpg: Adviser Code O772"}, {"id": "cpw_mlc_masterkey", "acquisition": "CPW", "provider": "MLC Masterkey", "oldDealer": "", "oldAdviser": "Michael Hiscock: P5438\nStephen Garrett: P5439", "newDealer": "", "newAdviser": "", "stage": "Complete", "owner": "", "staffAccess": "", "notes": "Michael: No Clients confiremed by MLC"}, {"id": "cpw_macquarie", "acquisition": "CPW", "provider": "Macquarie", "oldDealer": "7959", "oldAdviser": "Michael Hiscock: 7959-MHISC2\nStephen Garrett: 7959- SGARR2", "newDealer": "", "newAdviser": "", "stage": "Complete", "owner": "", "staffAccess": "", "notes": "Michael: User ID: 63070580; Stephen: User ID: 68920255"}, {"id": "cpw_neos", "acquisition": "CPW", "provider": "Neos", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "10395", "stage": "Client Transfers", "owner": "", "staffAccess": "", "notes": "Afpg: Transferred to existing code. One Policy 111387603."}, {"id": "cpw_onepath", "acquisition": "CPW", "provider": "OnePath", "oldDealer": "", "oldAdviser": "Michael Hiscock: Licensee Code - 2018414; Adviser Code - 2106355", "newDealer": "", "newAdviser": "Licensee Code - 2018414; Adviser Code - 2106353", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_protection_plans_exbt", "acquisition": "CPW", "provider": "Protection Plans (ExBT)", "oldDealer": "", "oldAdviser": "Michael Hiscock: F06989393 & F0726573\nStephen Garrett: No Clients", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_rhythm_hub24", "acquisition": "CPW", "provider": "Rhythm / HUB24", "oldDealer": "", "oldAdviser": "Michael Hiscock: Awaiting Registration\nStephen Garrett: Pending", "newDealer": "", "newAdviser": "", "stage": "Waiting for New Codes", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_tal", "acquisition": "CPW", "provider": "TAL", "oldDealer": "", "oldAdviser": "Michael Hiscock: 75571 & 116070\nStephen Garrett: 11404, 75565 & 26328C", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "cpw_zurich", "acquisition": "CPW", "provider": "Zurich", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Client Transfers", "owner": "", "staffAccess": "", "notes": "Afpg: Michael's adviser codes X029, Y157 & 48E8 to AFPG. Stephen's adviser codes BJ64, 48E9 & 69JJ to AFPG. In addition, please note that we have transferred all business from BJ64, 48E9 & 69JJ Stephen Garrett to LU31 & 5L73 AFPG NSW (Contact: Matthew Carter)."}], "Chalmers": [{"id": "chalmers_hub24", "acquisition": "Chalmers", "provider": "HUB24", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_keyinvest", "acquisition": "Chalmers", "provider": "KeyInvest", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_bt_panorama", "acquisition": "Chalmers", "provider": "BT PANORAMA", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_australian_super", "acquisition": "Chalmers", "provider": "Australian Super", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_austock", "acquisition": "Chalmers", "provider": "Austock", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_aware_super", "acquisition": "Chalmers", "provider": "AWARE SUPER", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_mlc_investments", "acquisition": "Chalmers", "provider": "MLC INVESTMENTS", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_navigator_australia_ltd", "acquisition": "Chalmers", "provider": "NAVIGATOR AUSTRALIA LTD", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_hesta", "acquisition": "Chalmers", "provider": "HESTA", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_futurity_investment_group", "acquisition": "Chalmers", "provider": "FUTURITY INVESTMENT GROUP", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_myown_health", "acquisition": "Chalmers", "provider": "MyOwn Health", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_aia_australia", "acquisition": "Chalmers", "provider": "AIA Australia", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_resolution_life_amp", "acquisition": "Chalmers", "provider": "Resolution Life/AMP", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_asgard_capital_management_limited", "acquisition": "Chalmers", "provider": "ASGARD CAPITAL MANAGEMENT LIMITED", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_asteron_life", "acquisition": "Chalmers", "provider": "ASTERON LIFE", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_ausiex", "acquisition": "Chalmers", "provider": "AUSIEX", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_generation_life", "acquisition": "Chalmers", "provider": "Generation Life", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_resolution_life_axa", "acquisition": "Chalmers", "provider": "RESOLUTION LIFE/AXA", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_bt_life_limited", "acquisition": "Chalmers", "provider": "BT LIFE LIMITED", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_comminsure", "acquisition": "Chalmers", "provider": "COMMINSURE", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_fee_for_service", "acquisition": "Chalmers", "provider": "FEE FOR SERVICE", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_colonial_first_state_investments_limited", "acquisition": "Chalmers", "provider": "COLONIAL FIRST STATE INVESTMENTS LIMITED", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_ioof", "acquisition": "Chalmers", "provider": "IOOF", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_macquarie_wrap", "acquisition": "Chalmers", "provider": "MACQUARIE WRAP", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_acenda_mlc_limited", "acquisition": "Chalmers", "provider": "Acenda (MLC Limited)", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_onepath_funds_management_limited", "acquisition": "Chalmers", "provider": "ONEPATH FUNDS MANAGEMENT LIMITED", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_onepath_life_limited", "acquisition": "Chalmers", "provider": "ONEPATH LIFE LIMITED", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_perpetual_investment", "acquisition": "Chalmers", "provider": "PERPETUAL INVESTMENT", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_praemium", "acquisition": "Chalmers", "provider": "PRAEMIUM", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_tal", "acquisition": "Chalmers", "provider": "TAL", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_zurich_australia_limited", "acquisition": "Chalmers", "provider": "Zurich Australia Limited", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}, {"id": "chalmers_total", "acquisition": "Chalmers", "provider": "Total", "oldDealer": "", "oldAdviser": "", "newDealer": "", "newAdviser": "", "stage": "Not Started", "owner": "", "staffAccess": "", "notes": ""}]};
+let current = 'Praescius';
+let data = loadData();
+
+function loadData(){
+  try {
+    const saved = localStorage.getItem('afpgSimpleTransitionTracker');
+    if(saved) return JSON.parse(saved);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData(){ localStorage.setItem('afpgSimpleTransitionTracker', JSON.stringify(data)); }
+
+function stageIndex(stage){
+  const idx = STAGES.indexOf(stage);
+  return idx < 0 ? 0 : idx;
+}
+function progressFor(records){
+  if(!records.length) return 0;
+  const max = STAGES.length - 1;
+  const total = records.reduce((sum,r)=>sum+stageIndex(r.stage),0);
+  return Math.round((total/(records.length*max))*100);
+}
+function renderTabs(){
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = Object.keys(data).map(name => {
+    const pct = progressFor(data[name]);
+    return `<button class="tab ${name===current?'active':''}" onclick="selectAcquisition('${name}')">${name} <span class="badge">${data[name].length}</span><div class="progress"><div class="bar" style="width:${pct}%"></div></div></button>`;
+  }).join('');
+}
+function selectAcquisition(name){ current=name; document.getElementById('search').value=''; render(); }
+function renderCards(){
+  const records = data[current] || [];
+  const completed = records.filter(r=>r.stage==='Complete').length;
+  const waiting = records.filter(r=>r.stage==='Waiting for New Codes' || r.stage==='Follow Up').length;
+  const transfers = records.filter(r=>r.stage==='Client Transfers').length;
+  const pct = progressFor(records);
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="label">Providers</div><div class="num">${records.length}</div></div>
+    <div class="card"><div class="label">Completed</div><div class="num">${completed}</div></div>
+    <div class="card"><div class="label">Waiting / Follow Up</div><div class="num">${waiting}</div></div>
+    <div class="card"><div class="label">Progress</div><div class="num">${pct}%</div><div class="progress"><div class="bar" style="width:${pct}%"></div></div></div>
+  `;
+  document.getElementById('summaryText').textContent = `${completed} completed, ${transfers} in client transfers, ${waiting} waiting/follow-up.`;
+}
+function renderTable(){
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  let records = data[current] || [];
+  if(q) records = records.filter(r => Object.values(r).join(' ').toLowerCase().includes(q));
+  const wrap = document.getElementById('tableWrap');
+  if(!records.length){ wrap.innerHTML = '<div class="empty">No providers found. Use + Add Provider to add one.</div>'; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Provider</th><th>Old Dealer</th><th>Old Adviser Code(s)</th><th>New Dealer</th><th>New Adviser / Corporate Code</th><th>Stage</th><th>Owner</th><th>Staff Access</th><th>Notes</th><th></th>
+    </tr></thead>
+    <tbody>
+      ${records.map(r=>rowHtml(r)).join('')}
+    </tbody>
+  </table>`;
+}
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function rowHtml(r){
+  const options = STAGES.map(s=>`<option value="${esc(s)}" ${r.stage===s?'selected':''}>${esc(s)}</option>`).join('');
+  return `<tr>
+    <td class="provider">${esc(r.provider)}</td>
+    <td><input value="${esc(r.oldDealer)}" onchange="updateRec('${r.id}','oldDealer',this.value)"></td>
+    <td class="wide"><textarea rows="2" onchange="updateRec('${r.id}','oldAdviser',this.value)">${esc(r.oldAdviser)}</textarea></td>
+    <td><input value="${esc(r.newDealer)}" onchange="updateRec('${r.id}','newDealer',this.value)"></td>
+    <td class="wide"><textarea rows="2" onchange="updateRec('${r.id}','newAdviser',this.value)">${esc(r.newAdviser)}</textarea></td>
+    <td class="stage"><select onchange="updateRec('${r.id}','stage',this.value)">${options}</select></td>
+    <td><input value="${esc(r.owner)}" onchange="updateRec('${r.id}','owner',this.value)"></td>
+    <td><input value="${esc(r.staffAccess)}" onchange="updateRec('${r.id}','staffAccess',this.value)"></td>
+    <td class="wide"><textarea rows="2" onchange="updateRec('${r.id}','notes',this.value)">${esc(r.notes)}</textarea></td>
+    <td><button class="danger" onclick="deleteRec('${r.id}')">Delete</button></td>
+  </tr>`;
+}
+function updateRec(id, field, value){
+  const rec = (data[current]||[]).find(r=>r.id===id);
+  if(rec){ rec[field]=value; saveData(); renderTabs(); renderCards(); }
+}
+function deleteRec(id){
+  if(!confirm('Delete this provider?')) return;
+  data[current] = data[current].filter(r=>r.id!==id);
+  saveData(); render();
+}
+function openAddModal(){
+  document.getElementById('modal').classList.add('show');
+  const sel = document.getElementById('newStage');
+  sel.innerHTML = STAGES.map(s=>`<option>${esc(s)}</option>`).join('');
+  ['newProvider','newOldDealer','newOldAdviser','newNewDealer','newNewAdviser','newOwner','newStaff','newNotes'].forEach(id=>document.getElementById(id).value='');
+}
+function closeAddModal(){ document.getElementById('modal').classList.remove('show'); }
+function addProvider(){
+  const provider = document.getElementById('newProvider').value.trim();
+  if(!provider){ alert('Please enter provider name.'); return; }
+  const id = (current + '_' + provider + '_' + Date.now()).toLowerCase().replace(/\W+/g,'_');
+  data[current].push({
+    id, acquisition: current, provider,
+    oldDealer: document.getElementById('newOldDealer').value.trim(),
+    oldAdviser: document.getElementById('newOldAdviser').value.trim(),
+    newDealer: document.getElementById('newNewDealer').value.trim(),
+    newAdviser: document.getElementById('newNewAdviser').value.trim(),
+    stage: document.getElementById('newStage').value,
+    owner: document.getElementById('newOwner').value.trim(),
+    staffAccess: document.getElementById('newStaff').value.trim(),
+    notes: document.getElementById('newNotes').value.trim()
+  });
+  saveData(); closeAddModal(); render();
+}
+function resetData(){
+  if(!confirm('Reset all saved changes and reload the preloaded provider lists?')) return;
+  localStorage.removeItem('afpgSimpleTransitionTracker');
+  data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  current = 'Praescius';
+  render();
+}
+function exportCsv(){
+  const rows = data[current];
+  const headers = ['Acquisition','Provider','Old Dealer Code','Old Adviser Codes','New Dealer Code','New Adviser / Corporate Code','Stage','Owner','Staff Access','Notes'];
+  const csv = [headers, ...rows.map(r=>[current,r.provider,r.oldDealer,r.oldAdviser,r.newDealer,r.newAdviser,r.stage,r.owner,r.staffAccess,r.notes])]
+    .map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = current + '_provider_tracker.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function render(){
+  document.getElementById('title').textContent = current;
+  renderTabs(); renderCards(); renderTable();
+}
+render();
+</script>
+</body>
+</html>
