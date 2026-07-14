@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSI Manila Monthly Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy:#16365f;--blue:#2f64a3;--bg:#eef3f8;--card:#fff;--line:#dfe7f0;
+  --text:#1f2937;--muted:#64748b;--green:#15803d;--greenbg:#dcfce7;
+  --amber:#b45309;--amberbg:#fef3c7;--red:#b91c1c;--redbg:#fee2e2;--purple:#6d28d9
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;padding:24px 32px}
+.header-wrap{max-width:1500px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:20px}
+h1{margin:0;font-size:25px}.subtitle{margin-top:6px;font-size:13px;opacity:.82}
+.period{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:20px;font-size:13px;font-weight:bold}
+main{max-width:1500px;margin:auto;padding:20px 28px 35px}
+.uploads{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.upload-card{background:#fff;border:2px dashed #9db7d5;border-radius:14px;padding:18px;cursor:pointer;transition:.2s}
+.upload-card:hover,.upload-card.drag{background:#f8fbff;border-color:var(--blue)}
+.upload-title{font-weight:bold;color:var(--navy);font-size:15px}.upload-help{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+.file-name{font-size:11px;color:var(--green);font-weight:bold;margin-top:8px;min-height:14px}
+input[type=file]{display:none}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+button{border:0;border-radius:9px;padding:10px 14px;font-weight:bold;cursor:pointer;font-size:13px}
+.primary{background:var(--navy);color:white}.secondary{background:white;color:var(--navy);border:1px solid var(--line)}
+.notice{font-size:12px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.55px}
+.stat-value{font-size:30px;font-weight:bold;color:var(--navy);margin-top:7px}.stat-note{font-size:11px;color:var(--muted);margin-top:5px}
+.section-title{font-size:12px;font-weight:bold;color:var(--navy);text-transform:uppercase;letter-spacing:.8px;margin:8px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.person{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,.07);border-top:4px solid var(--red)}
+.person.on{border-top-color:var(--green)}.person.watch{border-top-color:#f59e0b}
+.person-head{padding:15px 16px 11px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}
+.person-name{font-size:18px;font-weight:bold;color:var(--navy)}.role{font-size:11px;color:var(--muted);margin-top:3px}
+.badge{font-size:11px;font-weight:bold;border-radius:18px;padding:5px 9px;white-space:nowrap;height:max-content}
+.badge.on{background:var(--greenbg);color:var(--green)}.badge.watch{background:var(--amberbg);color:var(--amber)}.badge.risk{background:var(--redbg);color:var(--red)}
+.person-body{padding:14px 16px}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-bottom:15px}
+.num+.num{border-left:1px solid var(--line)}.num strong{display:block;font-size:23px;color:var(--navy)}.num span{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.bar-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:9px 0 5px}.bar-head b{font-size:13px}
+.track{height:9px;background:#edf1f5;border-radius:10px;overflow:hidden}.fill{height:100%;border-radius:10px}.green{background:var(--green)}.amber{background:#f59e0b}.red{background:var(--red)}.purple{background:var(--purple)}
+.footer-row{padding:10px 16px;background:#f8fafc;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.settings{background:#fff;border-radius:14px;padding:16px;margin-top:20px;box-shadow:0 2px 8px rgba(15,23,42,.05)}
+.settings table{width:100%;border-collapse:collapse}.settings th,.settings td{padding:8px;border-bottom:1px solid var(--line);font-size:12px;text-align:left}
+.settings th{color:var(--navy);background:#f8fafc}.settings input{width:100%;padding:8px;border:1px solid var(--line);border-radius:7px}
+.hidden{display:none}
+
+.deep-dive{background:#fff;border-radius:14px;padding:16px;margin-top:20px;box-shadow:0 2px 8px rgba(15,23,42,.05)}
+.deep-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.deep-controls select,.deep-controls input{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
+.deep-controls input{min-width:260px;flex:1}
+.deep-table-wrap{overflow:auto}
+.deep-table{width:100%;border-collapse:collapse}
+.deep-table th,.deep-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:12px;text-align:left;vertical-align:top}
+.deep-table th{background:#f8fafc;color:var(--navy);position:sticky;top:0}
+.subject-count{font-weight:bold;color:var(--navy)}
+.card-action{margin-top:10px;width:100%;background:#f8fafc;color:var(--navy);border:1px solid var(--line)}
+
+@media(max-width:900px){.uploads,.stats{grid-template-columns:1fr 1fr}.header-wrap{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.uploads,.stats{grid-template-columns:1fr}main{padding:15px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-wrap">
+    <div>
+      <h1>CSI Manila Monthly Performance Dashboard</h1>
+      <div class="subtitle">Monthly completed tasks, queue workload and KPI progress</div>
+    </div>
+    <div class="period" id="period">Upload reports to begin</div>
+  </div>
+</header>
+
+<main>
+  <div class="uploads">
+    <div class="upload-card" id="completedDrop" onclick="completedInput.click()">
+      <div class="upload-title">✅ Upload Monthly Completed Tasks Report</div>
+      <div class="upload-help">Upload the Xplan Excel or CSV export covering the full month. The dashboard reads <b>Assignee</b>, <b>Status</b>, <b>Complete Date</b> and <b>Subject</b>.</div>
+      <div class="file-name" id="completedFileName"></div>
+    </div>
+    <div class="upload-card" id="queueDrop" onclick="queueInput.click()">
+      <div class="upload-title">📂 Upload Tasks Due – Next 3 Months Report</div>
+      <div class="upload-help">Upload the Xplan Excel or CSV export. Actioned and Unactioned tasks are counted for the selected CSI Manila team only.</div>
+      <div class="file-name" id="queueFileName"></div>
+    </div>
+  </div>
+  <input id="completedInput" type="file" accept=".xlsx,.xls,.csv">
+  <input id="queueInput" type="file" accept=".xlsx,.xls,.csv">
+
+  <div class="toolbar">
+    <button class="primary" onclick="toggleSettings()">⚙ Edit Targets & Focus Areas</button>
+    <button class="secondary" onclick="resetDashboard()">↻ Reset Dashboard</button>
+    <span class="notice" id="notice">No reports uploaded yet.</span>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="section-title">Team Performance</div>
+  <div class="grid" id="staffGrid"></div>
+
+  <div class="deep-dive">
+    <div class="section-title">Completed Task Deep Dive</div>
+    <div class="deep-controls">
+      <select id="deepPerson" onchange="renderDeepDive()"></select>
+      <input id="deepSearch" type="text" placeholder="Search task subject..." oninput="renderDeepDive()">
+    </div>
+    <div class="deep-table-wrap">
+      <table class="deep-table">
+        <thead><tr><th>Task Subject</th><th>Completed Count</th></tr></thead>
+        <tbody id="deepRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="settings hidden" id="settings">
+    <div class="section-title">Targets & Focus Areas</div>
+    <table>
+      <thead><tr><th>Team member</th><th>Focus area</th><th>Monthly target</th></tr></thead>
+      <tbody id="settingsRows"></tbody>
+    </table>
+    <div style="margin-top:12px"><button class="primary" onclick="saveSettings()">Save Settings</button></div>
+  </div>
+</main>
+
+<script>
+const TEAM = [
+  {key:'Joriel', xplan:'Misolas, Joriel', focus:'Fee Consents', target:700},
+  {key:'Cate', xplan:'Peralta, Maria Catleya', focus:'OB Report & Other Tasks', target:280},
+  {key:'Phil', xplan:'Bautista, Philmar', focus:'General Tasks', target:320},
+  {key:'Tricia', xplan:'Mercado, Tricia', focus:'General Tasks', target:320},
+  {key:'Gillian', xplan:'Ortega, Gillian', focus:'Inbox Monitoring & Other Tasks', target:260},
+  {key:'Alex', xplan:'Vidallo, Alex', focus:'PRF Tasks', target:200},
+  {key:'Vanessa', xplan:'Celestial, Vanessa', focus:'SOA PDF Schedule & Other Tasks', target:280},
+  {key:'Celina', xplan:'Almozara, Celina', focus:'General Tasks', target:320}
+];
+
+let settings = Object.fromEntries(TEAM.map(x=>[x.key,{focus:x.focus,target:x.target}]));
+let completed = Object.fromEntries(TEAM.map(x=>[x.key,0]));
+let queue = Object.fromEntries(TEAM.map(x=>[x.key,0]));
+let completedDates = [];
+let completedTaskDetails = [];
+let completedUploaded = false;
+let queueUploaded = false;
+
+function clean(v){return String(v??'').replace(/\s+/g,' ').trim().toLowerCase()}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function personFrom(raw){
+  const s=clean(raw);
+  const hit=TEAM.find(p=>clean(p.xplan)===s || clean(p.key)===s);
+  return hit?hit.key:null;
+}
+function findCol(keys, regs){return keys.find(k=>regs.some(r=>r.test(String(k))))}
+function parseDate(v){
+  if(!v) return null;
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v==='number'){
+    const d=new Date(Date.UTC(1899,11,30)); d.setUTCDate(d.getUTCDate()+Math.floor(v)); return d;
+  }
+  const s=String(v).trim();
+  const au=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(au) return new Date(`${au[3]}-${au[2].padStart(2,'0')}-${au[1].padStart(2,'0')}T00:00:00`);
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+function fmtDate(d){return d.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
+function safeSave(){
+  try{
+    localStorage.setItem('csiManilaPerformanceV1',JSON.stringify({
+      settings,completed,queue,completedDates:completedDates.map(d=>d.toISOString()),
+      completedTaskDetails,
+      completedUploaded,queueUploaded
+    }));
+  }catch(e){console.warn('Browser storage skipped',e)}
+}
+function readFile(file, callback){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      let wb;
+      if(file.name.toLowerCase().endsWith('.csv')) wb=XLSX.read(e.target.result,{type:'string',cellDates:true});
+      else wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:null,raw:true});
+      callback(rows);
+    }catch(err){alert('Could not read this report.\n\n'+err.message)}
+  };
+  file.name.toLowerCase().endsWith('.csv')?r.readAsText(file):r.readAsArrayBuffer(file);
+}
+function parseCompleted(rows){
+  const counts=Object.fromEntries(TEAM.map(x=>[x.key,0]));
+  const dates=[];
+  const details=[];
+  let recognised=0;
+  rows.forEach(row=>{
+    const keys=Object.keys(row);
+    const a=findCol(keys,[/^assignee$/i,/assigned to/i]);
+    const s=findCol(keys,[/^status$/i,/task status/i]);
+    const c=findCol(keys,[/^complete date$/i,/completed date/i,/date completed/i]);
+    const subjectKey=findCol(keys,[/^subject$/i,/task subject/i,/task name/i,/title/i]);
+    if(!a) return;
+    const p=personFrom(row[a]); if(!p) return;
+    const status=clean(s?row[s]:'complete');
+    if(s && !/(complete|completed|closed|done|finalised|finalized)/.test(status)) return;
+    counts[p]++;
+    recognised++;
+    const d=parseDate(c?row[c]:null); if(d) dates.push(d);
+    details.push({
+      person:p,
+      subject:String(subjectKey ? (row[subjectKey] ?? '') : '').trim() || 'No subject',
+      completeDate:d ? d.toISOString() : null
+    });
+  });
+  if(!recognised) throw new Error('No matching CSI Manila completed tasks were found. Expected an Assignee column using the Xplan names configured in this dashboard.');
+  completed=counts; completedDates=dates; completedTaskDetails=details; completedUploaded=true;
+}
+function parseQueue(rows){
+  const counts=Object.fromEntries(TEAM.map(x=>[x.key,0]));
+  let recognised=0;
+  rows.forEach(row=>{
+    const keys=Object.keys(row);
+    const a=findCol(keys,[/^assignee$/i,/assigned to/i]);
+    const s=findCol(keys,[/^status$/i,/task status/i]);
+    if(!a) return;
+    const p=personFrom(row[a]); if(!p) return;
+    const status=clean(s?row[s]:'');
+    if(s && /(complete|completed|closed|done|cancelled|canceled|deleted|finalised|finalized)/.test(status)) return;
+    counts[p]++; recognised++;
+  });
+  if(!recognised) throw new Error('No matching CSI Manila queue tasks were found. Expected an Assignee column using the Xplan names configured in this dashboard.');
+  queue=counts; queueUploaded=true;
+}
+
+function renderDeepDive(){
+  const select=document.getElementById('deepPerson');
+  if(!select) return;
+  const current=select.value || 'ALL';
+  if(!select.options.length){
+    select.innerHTML='<option value="ALL">All Team Members</option>'+TEAM.map(p=>`<option value="${p.key}">${esc(p.key)}</option>`).join('');
+    select.value='ALL';
+  }else if([...select.options].some(o=>o.value===current)){
+    select.value=current;
+  }
+  const chosen=select.value || 'ALL';
+  const term=clean(document.getElementById('deepSearch')?.value || '');
+  const filtered=completedTaskDetails.filter(t=>(chosen==='ALL'||t.person===chosen) && (!term || clean(t.subject).includes(term)));
+  const grouped={};
+  filtered.forEach(t=>{
+    const key=t.subject || 'No subject';
+    grouped[key]=(grouped[key]||0)+1;
+  });
+  const rows=Object.entries(grouped).sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]));
+  document.getElementById('deepRows').innerHTML=rows.length
+    ? rows.map(([subject,count])=>`<tr><td>${esc(subject)}</td><td class="subject-count">${count}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="color:var(--muted)">No completed task subjects to show.</td></tr>';
+}
+function showPersonDeepDive(name){
+  const select=document.getElementById('deepPerson');
+  select.value=name;
+  document.getElementById('deepSearch').value='';
+  renderDeepDive();
+  document.querySelector('.deep-dive').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function status(pct){return pct>=100?'on':pct>=85?'watch':'risk'}
+function statusText(s){return s==='on'?'✓ On Track':s==='watch'?'⚠ Watch':'✗ At Risk'}
+function render(){
+  const totalC=Object.values(completed).reduce((a,b)=>a+b,0);
+  const totalQ=Object.values(queue).reduce((a,b)=>a+b,0);
+  const teamTarget=TEAM.reduce((s,p)=>s+Number(settings[p.key]?.target||0),0);
+  const achievement=teamTarget?Math.round(totalC/teamTarget*100):0;
+  const efficiency=(totalC+totalQ)?Math.round(totalC/(totalC+totalQ)*100):0;
+  const onTrack=TEAM.filter(p=>{
+    const t=Number(settings[p.key]?.target||0); return t && completed[p.key]/t>=1;
+  }).length;
+
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-label">Tasks Completed</div><div class="stat-value">${totalC}</div><div class="stat-note">From uploaded monthly completed tasks report</div></div>
+    <div class="stat"><div class="stat-label">Tasks in Queue</div><div class="stat-value" style="color:var(--purple)">${totalQ}</div><div class="stat-note">Open tasks in uploaded due report</div></div>
+    <div class="stat"><div class="stat-label">Monthly KPI Achievement</div><div class="stat-value">${achievement}%</div><div class="stat-note">${onTrack} of ${TEAM.length} team members on target</div></div>
+    <div class="stat"><div class="stat-label">Queue Efficiency</div><div class="stat-value">${efficiency}%</div><div class="stat-note">Completed ÷ completed + queue</div></div>`;
+
+  document.getElementById('staffGrid').innerHTML=TEAM.map(p=>{
+    const c=completed[p.key]||0,q=queue[p.key]||0,t=Number(settings[p.key]?.target||0);
+    const pct=t?c/t*100:0, eff=(c+q)?c/(c+q)*100:0, st=status(pct);
+    const fill=st==='on'?'green':st==='watch'?'amber':'red';
+    const effFill=eff>=70?'green':eff>=50?'amber':'red';
+    return `<div class="person ${st}">
+      <div class="person-head">
+        <div><div class="person-name">${esc(p.key)}</div><div class="role">${esc(settings[p.key]?.focus||'')}</div></div>
+        <div class="badge ${st}">${statusText(st)}</div>
+      </div>
+      <div class="person-body">
+        <div class="nums">
+          <div class="num"><strong>${c}</strong><span>Completed</span></div>
+          <div class="num"><strong>${q}</strong><span>In Queue</span></div>
+          <div class="num"><strong>${t}</strong><span>Target</span></div>
+        </div>
+        <div class="bar-head"><span>Monthly KPI achievement</span><b>${pct.toFixed(1)}%</b></div>
+        <div class="track"><div class="fill ${fill}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="bar-head"><span>Queue efficiency</span><b>${eff.toFixed(1)}%</b></div>
+        <div class="track"><div class="fill ${effFill}" style="width:${Math.min(eff,100)}%"></div></div>
+        <button class="card-action" onclick="showPersonDeepDive('${p.key}')">View Completed Task Subjects</button>
+      </div>
+      <div class="footer-row">Xplan assignee: <b>${esc(p.xplan)}</b></div>
+    </div>`;
+  }).join('');
+
+  let period='Upload reports to begin';
+  if(completedDates.length){
+    const ds=[...completedDates].sort((a,b)=>a-b);
+    period=`Month report: ${fmtDate(ds[0])} – ${fmtDate(ds[ds.length-1])}`;
+  }
+  document.getElementById('period').textContent=period;
+  document.getElementById('notice').textContent=
+    completedUploaded && queueUploaded ? 'Both reports loaded successfully.' :
+    completedUploaded ? 'Completed report loaded. Upload the queue report next.' :
+    queueUploaded ? 'Queue report loaded. Upload the completed report next.' : 'No reports uploaded yet.';
+  renderSettings();
+  renderDeepDive();
+}
+function renderSettings(){
+  document.getElementById('settingsRows').innerHTML=TEAM.map(p=>`
+    <tr>
+      <td><b>${esc(p.key)}</b><br><span style="color:var(--muted);font-size:11px">${esc(p.xplan)}</span></td>
+      <td><input data-key="${p.key}" data-field="focus" value="${esc(settings[p.key]?.focus||'')}"></td>
+      <td><input data-key="${p.key}" data-field="target" type="number" min="0" value="${Number(settings[p.key]?.target||0)}"></td>
+    </tr>`).join('');
+}
+function toggleSettings(){document.getElementById('settings').classList.toggle('hidden')}
+function saveSettings(){
+  document.querySelectorAll('#settingsRows input').forEach(i=>{
+    const k=i.dataset.key,f=i.dataset.field;
+    if(!settings[k]) settings[k]={focus:'',target:0};
+    settings[k][f]=f==='target'?Math.max(0,Number(i.value)||0):i.value;
+  });
+  safeSave(); render();
+}
+function resetDashboard(){
+  if(!confirm('Reset uploaded results and start fresh?')) return;
+  completed=Object.fromEntries(TEAM.map(x=>[x.key,0]));
+  queue=Object.fromEntries(TEAM.map(x=>[x.key,0]));
+  completedDates=[];completedTaskDetails=[];completedUploaded=false;queueUploaded=false;
+  document.getElementById('completedFileName').textContent='';
+  document.getElementById('queueFileName').textContent='';
+  try{localStorage.removeItem('csiManilaPerformanceV1')}catch(e){}
+  render();
+}
+function bindDrop(el,input,handler){
+  ['dragover','drop'].forEach(evt=>el.addEventListener(evt,e=>e.preventDefault()));
+  el.addEventListener('dragover',()=>el.classList.add('drag'));
+  el.addEventListener('dragleave',()=>el.classList.remove('drag'));
+  el.addEventListener('drop',e=>{el.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handler(f)});
+  input.addEventListener('change',e=>{const f=e.target.files[0];if(f)handler(f);input.value=''});
+}
+function handleCompleted(file){
+  readFile(file,rows=>{
+    try{parseCompleted(rows);document.getElementById('completedFileName').textContent='Loaded: '+file.name;safeSave();render()}
+    catch(e){alert('Could not process completed tasks report.\n\n'+e.message)}
+  });
+}
+function handleQueue(file){
+  readFile(file,rows=>{
+    try{parseQueue(rows);document.getElementById('queueFileName').textContent='Loaded: '+file.name;safeSave();render()}
+    catch(e){alert('Could not process queue report.\n\n'+e.message)}
+  });
+}
+bindDrop(document.getElementById('completedDrop'),document.getElementById('completedInput'),handleCompleted);
+bindDrop(document.getElementById('queueDrop'),document.getElementById('queueInput'),handleQueue);
+
+(function init(){
+  try{
+    const raw=localStorage.getItem('csiManilaPerformanceV1');
+    if(raw){
+      const s=JSON.parse(raw);
+      if(s.settings) settings=s.settings;
+      if(s.completed) completed={...completed,...s.completed};
+      if(s.queue) queue={...queue,...s.queue};
+      if(s.completedDates) completedDates=s.completedDates.map(parseDate).filter(Boolean);
+      if(s.completedTaskDetails) completedTaskDetails=s.completedTaskDetails;
+      completedUploaded=!!s.completedUploaded;queueUploaded=!!s.queueUploaded;
+    }
+  }catch(e){}
+  render();
+})();
+</script>
+</body>
+</html>
