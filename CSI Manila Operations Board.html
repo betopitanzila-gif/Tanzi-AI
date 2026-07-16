@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AFPG CSI Operations Intelligence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy:#173a63;--blue:#2d6cdf;--bg:#f4f7fb;--line:#e3ebf3;--muted:#6b7b8c;
+  --red:#c23b3b;--orange:#d97706;--yellow:#9a7a00;--green:#168457;--purple:#6d4aff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#17324f}
+.wrap{max-width:1680px;margin:auto;padding:22px}
+.hero{background:linear-gradient(135deg,#173a63,#235080);color:white;border-radius:22px;padding:24px;margin-bottom:16px}
+.hero h1{margin:0 0 8px;font-size:30px}
+.hero p{margin:0;color:#dbe8f6}
+.panel,.card,.tablebox,.section{background:white;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(15,35,60,.07)}
+.panel{padding:16px;margin-bottom:16px}
+.upload-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+.drop{border:2px dashed #b6cbe2;background:#fbfdff;border-radius:16px;padding:20px;text-align:center}
+.drop.drag{background:#edf6ff}
+input,select,button{font-family:inherit}
+input,select{border:1px solid #d7e2ee;border-radius:12px;padding:10px;min-height:40px}
+button{border:none;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer}
+.primary{background:var(--navy);color:white}.secondary{background:#eef4fb;color:var(--navy)}
+.note{font-size:12px;color:var(--muted);line-height:1.45}
+.kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:12px;margin-bottom:16px}
+.card{padding:15px}
+.k{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:900;letter-spacing:.03em}
+.v{font-size:28px;font-weight:900;color:var(--navy);margin-top:5px}
+.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tabbtn{background:#eaf2ff;color:#173a63}
+.tabbtn.active{background:#173a63;color:white}
+.tab{display:none}.tab.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.section{padding:16px;margin-bottom:16px}
+.section h2,.tablebox h2{margin:0 0 12px;color:var(--navy)}
+.barrow{display:grid;grid-template-columns:190px 1fr 80px;gap:10px;align-items:center;margin:8px 0;font-size:13px}
+.bar{height:14px;background:#edf2f7;border-radius:99px;overflow:hidden}
+.fill{height:100%;background:linear-gradient(90deg,#2d6cdf,#7b9ef5);border-radius:99px}
+.fill.red{background:linear-gradient(90deg,#c23b3b,#ef8b8b)}
+.fill.orange{background:linear-gradient(90deg,#d97706,#f4b25b)}
+.fill.green{background:linear-gradient(90deg,#168457,#6fc79d)}
+.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;white-space:nowrap}
+.badge.red{background:#fdecec;color:var(--red)}.badge.orange{background:#fff4df;color:var(--orange)}
+.badge.yellow{background:#fff9db;color:var(--yellow)}.badge.green{background:#e8f6ef;color:var(--green)}
+.badge.blue{background:#eaf2ff;color:var(--blue)}.badge.purple{background:#f0edff;color:var(--purple)}
+.tablebox{padding:16px;overflow:auto;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:9px 8px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}
+th{background:#f8fbff;color:#173a63;text-transform:uppercase;font-size:10.5px;position:sticky;top:0;z-index:1}
+tr:hover{background:#fbfdff}
+.click{color:#2d6cdf;font-weight:900;cursor:pointer;text-decoration:underline}
+.assignee-card{padding:14px;border:1px solid #e8eef6;border-radius:14px;background:#fbfdff;cursor:pointer}
+.assignee-card:hover{border-color:#9bbce8;background:#f3f8ff}
+.assignee-card h3{margin:0 0 8px;color:#173a63}
+.smallstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mini{background:white;border:1px solid #edf2f7;border-radius:10px;padding:8px}
+.mini b{display:block;font-size:18px;color:#173a63}
+.drawer{position:fixed;right:-720px;top:0;width:720px;height:100vh;background:white;box-shadow:-12px 0 35px rgba(0,0,0,.18);transition:.25s;z-index:50;overflow:auto;padding:22px}
+.drawer.open{right:0}
+.drawer h2{margin-top:0;color:#173a63}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:40}
+.overlay.open{display:block}
+.empty{text-align:center;color:var(--muted);padding:24px}
+@media(max-width:1200px){.kpis{grid-template-columns:repeat(2,1fr)}.upload-grid,.grid2,.grid3,.grid4{grid-template-columns:1fr}.drawer{width:94vw;right:-94vw}.barrow{grid-template-columns:120px 1fr 55px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>AFPG CSI Operations Intelligence Dashboard</h1>
+    <p>Upload any Xplan task report to view due work, completed work, task types from Subject, assignee queues, aged tasks and daily movement.</p>
+  </div>
+
+  <div class="panel upload-grid">
+    <div class="drop" id="drop">
+      <strong>Drop Xplan Tasks Due CSV/XLSX here</strong><br>
+      <span class="note">Reference columns supported: Due Date, Subject, Status, Entity, Assignee, Assigner, Basedate, Activated Date, Type, Thread Name, Subtype.</span><br>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="margin-top:12px">
+      <div class="note" id="fileStatus">No report uploaded yet.</div>
+    </div>
+    <div>
+      <div class="note"><strong>How the dashboard classifies tasks</strong><br>
+      It scans the Subject first, then Subtype/Thread Name if needed. Examples: Loan Thread Task 2a/2b, Advice Thread - Prioritise, XPlan Update or Full Set-up, PRF - Refresh Thread, Fee Consent, Task 3a, Update Xplan, Implementation Pack, SOA/ROA, Review Pack, Insurance, Withdrawal, Contribution, Rollover, Pension, Forms, Authority and more.</div>
+      <br>
+      <button class="secondary" onclick="clearHistory()">Clear saved upload history</button>
+      <button class="primary" onclick="exportCurrent()">Export current filtered table</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="card"><div class="k">Total Tasks</div><div class="v" id="kTotal">0</div><div class="sub">Current upload</div></div>
+    <div class="card"><div class="k">Tasks Due/Open</div><div class="v" id="kOpen">0</div><div class="sub">Not completed</div></div>
+    <div class="card"><div class="k">Completed</div><div class="v" id="kCompleted">0</div><div class="sub">In report</div></div>
+    <div class="card"><div class="k">Overdue</div><div class="v" id="kOverdue">0</div><div class="sub">Open and past due</div></div>
+    <div class="card"><div class="k">Due Next 5 Days</div><div class="v" id="kDue5">0</div><div class="sub">Open tasks</div></div>
+    <div class="card"><div class="k">Task 3a Next 5 Days</div><div class="v" id="k3a5">0</div><div class="sub">Pre-review focus</div></div>
+    <div class="card"><div class="k">Assignees</div><div class="v" id="kAssignees">0</div><div class="sub">With open tasks</div></div>
+    <div class="card"><div class="k">Oldest Activated</div><div class="v" id="kOldest">0d</div><div class="sub">Open queue</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <input id="search" placeholder="Search client, subject, assignee..." oninput="renderAll()">
+      <select id="assigneeFilter" onchange="renderAll()"><option value="all">All assignees</option></select>
+      <select id="typeFilter" onchange="renderAll()"><option value="all">All task types</option></select>
+      <select id="statusFilter" onchange="renderAll()">
+        <option value="all">All statuses</option><option value="open">Open / Due</option><option value="completed">Completed</option><option value="overdue">Overdue</option><option value="due5">Due next 5 days</option><option value="old30">Activated 30+ days</option><option value="old60">Activated 60+ days</option><option value="old90">Activated 90+ days</option>
+      </select>
+    </div>
+    <div class="note" id="lastUpload">Upload a report to begin.</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tabbtn active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tabbtn" onclick="showTab('assignees',this)">Assignee Reports</button>
+    <button class="tabbtn" onclick="showTab('tasktypes',this)">Task Types</button>
+    <button class="tabbtn" onclick="showTab('oldest',this)">Oldest Activated Tasks</button>
+    <button class="tabbtn" onclick="showTab('duecompleted',this)">Detailed Due & Completed</button>
+    <button class="tabbtn" onclick="showTab('movement',this)">Upload Movement</button>
+  </div>
+
+  <div id="overview" class="tab active">
+    <div class="grid2">
+      <div class="section"><h2>Tasks Due by Assignee</h2><div id="openByAssignee"></div></div>
+      <div class="section"><h2>Completed by Assignee</h2><div id="completedByAssignee"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="section"><h2>Task Types from Subject</h2><div id="typeBars"></div></div>
+      <div class="section"><h2>Age Buckets for Open Tasks</h2><div id="ageBars"></div></div>
+    </div>
+    <div class="tablebox"><h2>Task 3a Due in Next 5 Days</h2><div id="task3aTable"></div></div>
+  </div>
+
+  <div id="assignees" class="tab">
+    <div class="section"><h2>Assignee Queue Summary</h2><div class="grid4" id="assigneeCards"></div></div>
+    <div class="tablebox"><h2>Selected / Filtered Assignee Detail</h2><div id="assigneeDetail"></div></div>
+  </div>
+
+  <div id="tasktypes" class="tab">
+    <div class="section"><h2>Task Type Summary</h2><div id="taskTypeSummary"></div></div>
+    <div class="tablebox"><h2>Task Type Detail</h2><div id="taskTypeDetail"></div></div>
+  </div>
+
+  <div id="oldest" class="tab">
+    <div class="grid3">
+      <div class="section"><h2>30+ Days</h2><div id="old30"></div></div>
+      <div class="section"><h2>60+ Days</h2><div id="old60"></div></div>
+      <div class="section"><h2>90+ Days</h2><div id="old90"></div></div>
+    </div>
+    <div class="tablebox"><h2>Oldest Activated Tasks in Queue</h2><div id="oldestTable"></div></div>
+  </div>
+
+  <div id="duecompleted" class="tab">
+    <div class="grid2">
+      <div class="tablebox"><h2>Detailed Tasks Due / Open</h2><div id="dueTable"></div></div>
+      <div class="tablebox"><h2>Detailed Completed Tasks</h2><div id="completedTable"></div></div>
+    </div>
+  </div>
+
+  <div id="movement" class="tab">
+    <div class="section"><h2>Upload History and Daily Completion Estimate</h2><div class="note">When you upload reports over time, the dashboard compares task IDs to estimate tasks completed/removed since the previous upload and stores this locally in this browser.</div><div id="movementBars" style="margin-top:12px"></div></div>
+    <div class="tablebox"><h2>History</h2><div id="historyTable"></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"><button class="secondary" onclick="closeDrawer()">Close</button><div id="drawerContent"></div></div>
+
+<script>
+let rawRows=[], rows=[], history=[], currentTable=[];
+const DAY=86400000, today=sod(new Date());
+const STORAGE='afpg_csi_ops_history_v4';
+const LAST_UPLOAD_DB='afpg_csi_ops_last_upload_v1';
+const LAST_UPLOAD_STORE='reports';
+const LAST_UPLOAD_KEY='latest';
+
+function showTab(id,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+function sod(d){let x=new Date(d);x.setHours(0,0,0,0);return x}
+function norm(s){return String(s||'').trim()}
+function low(s){return norm(s).toLowerCase()}
+function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;")}
+function dateParse(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date&&!isNaN(v))return sod(v);
+  if(typeof v==='number'){let e=new Date(Date.UTC(1899,11,30));e.setUTCDate(e.getUTCDate()+Math.floor(v));return sod(new Date(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate()))}
+  let s=String(v).trim(); let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if(m){let y=+m[3]; if(y<100)y+=2000; return sod(new Date(y,+m[2]-1,+m[1]));}
+  m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m)return sod(new Date(+m[1],+m[2]-1,+m[3]));
+  let d=new Date(s); return isNaN(d)?null:sod(d);
+}
+function fmt(d){return d&&!isNaN(d)?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear():''}
+function daysBetween(a,b){return Math.floor((sod(a)-sod(b))/DAY)}
+function isCompleted(r){let s=low(r.status);return s.includes('complete')||s.includes('closed')||s==='done'}
+function isOpen(r){return !isCompleted(r)}
+function isOverdue(r){return isOpen(r)&&r.dueDate&&r.dueDate<today}
+function dueInNext(r,n){return isOpen(r)&&r.dueDate&&r.dueDate>=today&&daysBetween(r.dueDate,today)<=n}
+function age(r){return r.activatedDate?Math.max(0,daysBetween(today,r.activatedDate)):null}
+function dueClass(r){if(isOverdue(r))return 'red'; if(dueInNext(r,5))return 'orange'; if(isCompleted(r))return 'green'; return 'blue'}
+function firstVal(obj,names){let keys=Object.keys(obj);for(let n of names){let k=keys.find(x=>x.toLowerCase().replace(/[^a-z0-9]/g,'')===n.toLowerCase().replace(/[^a-z0-9]/g,''));if(k!==undefined&&String(obj[k]??'').trim()!=='')return obj[k];}return ''}
+
+function classifyTask(subject, subtype, thread){
+  let s=(' '+subject+' '+subtype+' '+thread+' ').toLowerCase().replace(/[_-]/g,' ');
+  const rules=[
+    ['Loan Thread - Task 2a',[/loan thread.*task\s*2a/,/task\s*2a.*loan thread/,/\btask\s*2a\b.*loan/]],
+    ['Loan Thread - Task 2b',[/loan thread.*task\s*2b/,/task\s*2b.*loan thread/,/\btask\s*2b\b.*loan/]],
+    ['Advice Thread - Prioritise',[/advice thread.*prioritise/,/prioritise.*advice thread/]],
+    ['XPlan Update / Full Set-up',[/xplan update or full set[\s-]*up/,/full set[\s-]*up/,/xplan.*full set[\s-]*up/]],
+    ['PRF - Refresh Thread',[/prf.*refresh thread/,/refresh thread.*prf/,/prf refresh/]],
+    ['PRF Update',[/prf update/,/update prf/]],
+    ['Task 3a / Pre-Review Docs',[/task\s*3a/,/generate full pre/,/pre review/,/pre appointment/,/preappointment/]],
+    ['Task 3b / Review Pack',[/task\s*3b/,/review pack/,/prepare review/,/client review report/]],
+    ['Task 3c / Implementation Pack',[/task\s*3c/,/implementation pdf/,/implementation pack/,/create implementation/]],
+    ['Update Xplan',[/task\s*7a/,/update xplan/,/xplan update/,/update.*xplan/]],
+    ['Fee Consent / OFA',[/fee consent/,/ongoing fee/,/\bofa\b/,/fee disclosure/,/consent form/]],
+    ['SOA / ROA / Advice',[/\bsoa\b/,/\broa\b/,/statement of advice/,/record of advice/,/advice document/,/advice docs/]],
+    ['Implementation',[/implementation/,/implement/,/lodgement/,/submit application/,/apply/,/new account/]],
+    ['Withdrawal',[/withdrawal/,/drawdown/,/partial withdrawal/,/lump sum/,/pension payment/]],
+    ['Contribution',[/contribution/,/downsizer/,/notice of intent/,/\bnoi\b/,/salary sacrifice/,/personal concessional/]],
+    ['Rollover / Transfer',[/rollover/,/transfer/,/superstream/,/choice of super/,/fund transfer/]],
+    ['Insurance',[/insurance/,/\btal\b/,/clearview/,/aia/,/zurich/,/metlife/,/acenda/,/onepath/,/policy/]],
+    ['Pension',[/pension/,/minimum payment/,/commutation/,/refresh/,/income stream/]],
+    ['Forms / Documents',[/form/,/document/,/docs/,/paperwork/,/signature/,/signing/,/docusign/]],
+    ['Authority / ID / AML',[/authority/,/\baml\b/,/identification/,/\bid\b/,/certified/,/client authorisation/,/third party/]],
+    ['Provider Follow Up',[/follow up/,/provider/,/call/,/email provider/,/waiting on provider/,/chase/]],
+    ['Appointment / Meeting',[/appointment/,/meeting/,/booked/,/calendar/]],
+    ['Datafeed / Inbox',[/datafeed/,/inbox/,/email/,/mailbox/]],
+    ['Centrelink',[/centrelink/,/aged care/,/department of human services/]],
+    ['Estate / Deceased',[/deceased/,/estate/,/death/,/probate/]],
+    ['Trade / Switch',[/switch/,/trade/,/rebalance/,/investment change/,/portfolio change/]],
+    ['Admin / Other Client Service',[/admin/,/client service/,/service request/,/general/]]
+  ];
+  for(const [name,patterns] of rules){if(patterns.some(p=>p.test(s)))return name;}
+  let clean=norm(subject).replace(/\s+/g,' ');
+  if(clean){
+    let prefix=clean.split(':')[0].trim();
+    if(prefix.length>4&&prefix.length<60)return prefix;
+  }
+  return 'Uncategorised';
+}
+
+function parseRows(input){
+  return input.map((r,i)=>{
+    let due=dateParse(firstVal(r,['Due Date','Due']));
+    let activated=dateParse(firstVal(r,['Activated Date','Activation Date','Created Date','Start Date']));
+    let subject=norm(firstVal(r,['Subject','Task Subject','Task']));
+    let subtype=norm(firstVal(r,['Subtype','Sub Type']));
+    let thread=norm(firstVal(r,['Thread Name','Thread','Type']));
+    let status=norm(firstVal(r,['Status','Task Status']));
+    let assignee=norm(firstVal(r,['Assignee','Assigned To','Owner','Responsible']));
+    return {
+      idx:i,
+      id:norm(firstVal(r,['Id','ID','Task ID'])) || (subject+'|'+firstVal(r,['Entity','Client'])+'|'+assignee+'|'+firstVal(r,['Due Date'])),
+      dueDate:due,
+      dueRaw:firstVal(r,['Due Date','Due']),
+      type:norm(firstVal(r,['Type','Thread Type'])),
+      threadName:thread,
+      subject, status,
+      entity:norm(firstVal(r,['Entity','Client','Client Name'])),
+      assigner:norm(firstVal(r,['Assigner','Assigned By'])),
+      assignee:assignee||'Unassigned',
+      basedate:dateParse(firstVal(r,['Basedate','BaseDate','Base Date','Appointment Date','Meeting Date'])),
+      basedate2:dateParse(firstVal(r,['Basedate2','BaseDate2'])),
+      activatedDate:activated,
+      activatedRaw:firstVal(r,['Activated Date','Activation Date','Created Date']),
+      subtype,
+      taskType:classifyTask(subject,subtype,thread)
+    };
+  });
+}
+function countBy(arr,keyfn){let m={};arr.forEach(r=>{let k=keyfn(r)||'Blank';m[k]=(m[k]||0)+1});return m}
+function arrFromCount(m){return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function barChart(elId,data,opts={}){
+  let el=document.getElementById(elId); if(!data.length){el.innerHTML='<div class="empty">No data.</div>';return;}
+  let max=Math.max(...data.map(x=>x[1]),1);
+  el.innerHTML=data.slice(0,opts.limit||20).map(([label,val])=>`<div class="barrow"><div title="${esc(label)}">${esc(label)}</div><div class="bar"><div class="fill ${opts.color||''}" style="width:${Math.max(2,val/max*100)}%"></div></div><b>${val}</b></div>`).join('');
+}
+function statusBadge(r){
+  let cls=dueClass(r), txt=isCompleted(r)?'COMPLETED':isOverdue(r)?'OVERDUE':dueInNext(r,5)?'DUE SOON':'OPEN';
+  return `<span class="badge ${cls}">${txt}</span>`;
+}
+function taskTypeBadge(t){return `<span class="badge purple">${esc(t)}</span>`}
+function table(arr,mode='full',limit=500){
+  currentTable=arr;
+  if(!arr.length)return '<div class="empty">No tasks to display.</div>';
+  let h='<table><thead><tr>';
+  let cols=['Status','Task Type','Client / Entity','Subject','Assignee','Assigner','Due Date','Activated','Age','Thread','Subtype'];
+  h+=cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  arr.slice(0,limit).forEach(r=>{
+    let ag=age(r); let agTxt=ag==null?'':ag+'d';
+    h+=`<tr><td>${statusBadge(r)}</td><td>${taskTypeBadge(r.taskType)}</td><td>${esc(r.entity)}</td><td>${esc(r.subject)}</td><td><span class="click" onclick="openAssignee('${esc(String(r.assignee).replaceAll("'","\\'"))}')">${esc(r.assignee)}</span></td><td>${esc(r.assigner)}</td><td>${fmt(r.dueDate)}</td><td>${fmt(r.activatedDate)}</td><td>${agTxt}</td><td>${esc(r.threadName||r.type)}</td><td>${esc(r.subtype)}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  if(arr.length>limit)h+=`<div class="note">Showing first ${limit} of ${arr.length} rows. Use filters to narrow the result.</div>`;
+  return h;
+}
+function filteredRows(){
+  let q=low(document.getElementById('search').value);
+  let af=document.getElementById('assigneeFilter').value;
+  let tf=document.getElementById('typeFilter').value;
+  let sf=document.getElementById('statusFilter').value;
+  return rows.filter(r=>{
+    if(af!=='all'&&r.assignee!==af)return false;
+    if(tf!=='all'&&r.taskType!==tf)return false;
+    if(q&&!low([r.entity,r.subject,r.assignee,r.assigner,r.status,r.taskType,r.subtype,r.threadName].join(' ')).includes(q))return false;
+    if(sf==='open'&&!isOpen(r))return false;
+    if(sf==='completed'&&!isCompleted(r))return false;
+    if(sf==='overdue'&&!isOverdue(r))return false;
+    if(sf==='due5'&&!dueInNext(r,5))return false;
+    if(sf==='old30'&&!(isOpen(r)&&age(r)>=30))return false;
+    if(sf==='old60'&&!(isOpen(r)&&age(r)>=60))return false;
+    if(sf==='old90'&&!(isOpen(r)&&age(r)>=90))return false;
+    return true;
+  });
+}
+function renderFilters(){
+  let assignees=[...new Set(rows.map(r=>r.assignee).filter(Boolean))].sort();
+  let types=[...new Set(rows.map(r=>r.taskType).filter(Boolean))].sort();
+  document.getElementById('assigneeFilter').innerHTML='<option value="all">All assignees</option>'+assignees.map(x=>`<option>${esc(x)}</option>`).join('');
+  document.getElementById('typeFilter').innerHTML='<option value="all">All task types</option>'+types.map(x=>`<option>${esc(x)}</option>`).join('');
+}
+function renderAll(){
+  let fr=filteredRows(), open=rows.filter(isOpen), completed=rows.filter(isCompleted), overdue=rows.filter(isOverdue), due5=rows.filter(r=>dueInNext(r,5));
+  let t3a5=rows.filter(r=>dueInNext(r,5)&&r.taskType==='Task 3a / Pre-Review Docs');
+  let assOpen=countBy(open,r=>r.assignee), oldest=Math.max(0,...open.map(r=>age(r)||0));
+  document.getElementById('kTotal').textContent=rows.length;
+  document.getElementById('kOpen').textContent=open.length;
+  document.getElementById('kCompleted').textContent=completed.length;
+  document.getElementById('kOverdue').textContent=overdue.length;
+  document.getElementById('kDue5').textContent=due5.length;
+  document.getElementById('k3a5').textContent=t3a5.length;
+  document.getElementById('kAssignees').textContent=Object.keys(assOpen).length;
+  document.getElementById('kOldest').textContent=oldest+'d';
+
+  barChart('openByAssignee',arrFromCount(countBy(open,r=>r.assignee)),{color:'orange',limit:25});
+  barChart('completedByAssignee',arrFromCount(countBy(completed,r=>r.assignee)),{color:'green',limit:25});
+  barChart('typeBars',arrFromCount(countBy(rows,r=>r.taskType)),{limit:25});
+  let buckets={'0-5 days':0,'6-15 days':0,'16-30 days':0,'31-60 days':0,'61-90 days':0,'90+ days':0};
+  open.forEach(r=>{let a=age(r); if(a==null)return; if(a<=5)buckets['0-5 days']++; else if(a<=15)buckets['6-15 days']++; else if(a<=30)buckets['16-30 days']++; else if(a<=60)buckets['31-60 days']++; else if(a<=90)buckets['61-90 days']++; else buckets['90+ days']++;});
+  barChart('ageBars',Object.entries(buckets),{color:'red'});
+  document.getElementById('task3aTable').innerHTML=table(t3a5.sort((a,b)=>(a.dueDate||0)-(b.dueDate||0)), 'full', 200);
+
+  renderAssignees(open,completed,overdue,due5);
+  renderTaskTypes();
+  document.getElementById('old30').innerHTML=miniList(open.filter(r=>age(r)>=30).sort((a,b)=>(age(b)||0)-(age(a)||0)).slice(0,8));
+  document.getElementById('old60').innerHTML=miniList(open.filter(r=>age(r)>=60).sort((a,b)=>(age(b)||0)-(age(a)||0)).slice(0,8));
+  document.getElementById('old90').innerHTML=miniList(open.filter(r=>age(r)>=90).sort((a,b)=>(age(b)||0)-(age(a)||0)).slice(0,8));
+  document.getElementById('oldestTable').innerHTML=table(open.filter(r=>r.activatedDate).sort((a,b)=>(age(b)||0)-(age(a)||0)), 'full', 500);
+  document.getElementById('dueTable').innerHTML=table(fr.filter(isOpen).sort((a,b)=>(a.dueDate||9999999999999)-(b.dueDate||9999999999999)), 'full', 500);
+  document.getElementById('completedTable').innerHTML=table(fr.filter(isCompleted).sort((a,b)=>(b.activatedDate||0)-(a.activatedDate||0)), 'full', 500);
+  renderHistory();
+}
+function miniList(arr){
+  if(!arr.length)return '<div class="empty">No tasks.</div>';
+  return arr.map(r=>`<div style="border-bottom:1px solid #edf2f7;padding:8px 0"><b>${esc(r.assignee)}</b> <span class="badge red">${age(r)}d</span><br><span class="note">${esc(r.entity)} — ${esc(r.subject)}</span></div>`).join('');
+}
+function renderAssignees(open,completed,overdue,due5){
+  let names=[...new Set(rows.map(r=>r.assignee))].sort();
+  document.getElementById('assigneeCards').innerHTML=names.map(n=>{
+    let o=open.filter(r=>r.assignee===n), c=completed.filter(r=>r.assignee===n), od=overdue.filter(r=>r.assignee===n), d5=due5.filter(r=>r.assignee===n);
+    let oldest=Math.max(0,...o.map(r=>age(r)||0));
+    return `<div class="assignee-card" onclick="openAssignee('${esc(String(n).replaceAll("'","\\'"))}')"><h3>${esc(n)}</h3><div class="smallstats"><div class="mini"><span class="k">Due/Open</span><b>${o.length}</b></div><div class="mini"><span class="k">Done</span><b>${c.length}</b></div><div class="mini"><span class="k">Overdue</span><b>${od.length}</b></div><div class="mini"><span class="k">Oldest</span><b>${oldest}d</b></div></div><div class="sub">Due next 5 days: ${d5.length}</div></div>`;
+  }).join('');
+  document.getElementById('assigneeDetail').innerHTML=table(filteredRows().sort((a,b)=>a.assignee.localeCompare(b.assignee)||((b.activatedDate||0)-(a.activatedDate||0))), 'full', 500);
+}
+function openAssignee(name){
+  let arr=rows.filter(r=>r.assignee===name), open=arr.filter(isOpen), completed=arr.filter(isCompleted), overdue=arr.filter(isOverdue);
+  let html=`<h2>${esc(name)}</h2><div class="grid3"><div class="card"><div class="k">Due/Open</div><div class="v">${open.length}</div></div><div class="card"><div class="k">Completed</div><div class="v">${completed.length}</div></div><div class="card"><div class="k">Overdue</div><div class="v">${overdue.length}</div></div></div><h2>Task Type Mix</h2><div id="drawerBars"></div><h2>Due/Open Tasks</h2>${table(open.sort((a,b)=>(a.dueDate||9999999999999)-(b.dueDate||9999999999999)), 'full', 250)}<h2>Completed Tasks</h2>${table(completed,'full',250)}<h2>Oldest Activated</h2>${table(open.filter(r=>r.activatedDate).sort((a,b)=>(age(b)||0)-(age(a)||0)),'full',100)}`;
+  document.getElementById('drawerContent').innerHTML=html; document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>barChart('drawerBars',arrFromCount(countBy(arr,r=>r.taskType)),{limit:20}),0);
+}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open')}
+function renderTaskTypes(){
+  let types=arrFromCount(countBy(rows,r=>r.taskType));
+  let html='<table><thead><tr><th>Task Type</th><th>Total</th><th>Due/Open</th><th>Completed</th><th>Overdue</th><th>Due Next 5 Days</th><th>Oldest Age</th></tr></thead><tbody>';
+  types.forEach(([t,total])=>{
+    let arr=rows.filter(r=>r.taskType===t), open=arr.filter(isOpen), comp=arr.filter(isCompleted), od=arr.filter(isOverdue), d5=arr.filter(r=>dueInNext(r,5));
+    let oldest=Math.max(0,...open.map(r=>age(r)||0));
+    html+=`<tr><td><span class="click" onclick="selectTaskType('${esc(String(t).replaceAll("'","\\'"))}')">${esc(t)}</span></td><td>${total}</td><td>${open.length}</td><td>${comp.length}</td><td>${od.length}</td><td>${d5.length}</td><td>${oldest}d</td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('taskTypeSummary').innerHTML=html;
+  document.getElementById('taskTypeDetail').innerHTML=table(filteredRows(), 'full', 500);
+}
+function selectTaskType(t){document.getElementById('typeFilter').value=t;renderAll();document.querySelectorAll('.tabbtn')[4]?.click?.();}
+function loadHistory(){try{history=JSON.parse(localStorage.getItem(STORAGE)||'[]')}catch(e){history=[]}}
+function saveHistory(){localStorage.setItem(STORAGE,JSON.stringify(history.slice(-60)))}
+function addHistory(filename){
+  loadHistory();
+  let prev=history[history.length-1];
+  let ids=new Set(rows.map(r=>r.id));
+  let prevIds=new Set(prev?.ids||[]);
+  let removed=[...prevIds].filter(id=>!ids.has(id)).length;
+  let completed=rows.filter(isCompleted).length;
+  history.push({when:new Date().toISOString(),filename,total:rows.length,open:rows.filter(isOpen).length,completed,overdue:rows.filter(isOverdue).length,removedSincePrevious:removed,ids:[...ids]});
+  saveHistory();
+}
+function renderHistory(){
+  loadHistory();
+  let hist=history.map(h=>[new Date(h.when).toLocaleDateString('en-AU')+' '+new Date(h.when).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}),h.open]);
+  barChart('movementBars',hist,{color:'blue',limit:30});
+  if(!history.length){document.getElementById('historyTable').innerHTML='<div class="empty">No upload history yet.</div>';return;}
+  let h='<table><thead><tr><th>Upload Time</th><th>File</th><th>Total</th><th>Open</th><th>Completed</th><th>Overdue</th><th>Estimated Completed/Removed Since Previous Upload</th></tr></thead><tbody>';
+  history.slice().reverse().forEach(x=>h+=`<tr><td>${new Date(x.when).toLocaleString('en-AU')}</td><td>${esc(x.filename)}</td><td>${x.total}</td><td>${x.open}</td><td>${x.completed}</td><td>${x.overdue}</td><td>${x.removedSincePrevious||0}</td></tr>`);
+  h+='</tbody></table>';document.getElementById('historyTable').innerHTML=h;
+}
+function clearHistory(){if(confirm('Clear saved upload history for this browser?')){history=[];saveHistory();renderHistory();}}
+function exportCurrent(){
+  let arr=currentTable.length?currentTable:filteredRows();
+  let cols=['Status','Task Type','Entity','Subject','Assignee','Assigner','Due Date','Activated Date','Age','Thread Name','Subtype'];
+  let lines=[cols.join(',')];
+  arr.forEach(r=>lines.push([isCompleted(r)?'Completed':isOverdue(r)?'Overdue':'Open',r.taskType,r.entity,r.subject,r.assignee,r.assigner,fmt(r.dueDate),fmt(r.activatedDate),age(r)??'',r.threadName,r.subtype].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')));
+  let blob=new Blob([lines.join('\n')],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='AFPG_CSI_Filtered_Tasks.csv'; a.click();
+}
+function openLastUploadDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(LAST_UPLOAD_DB,1);
+    req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(LAST_UPLOAD_STORE))req.result.createObjectStore(LAST_UPLOAD_STORE)};
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function saveLastUpload(filename, uploadedAt, data){
+  try{
+    const db=await openLastUploadDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(LAST_UPLOAD_STORE,'readwrite');
+      tx.objectStore(LAST_UPLOAD_STORE).put({filename,uploadedAt,rawRows:data},LAST_UPLOAD_KEY);
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+  }catch(err){console.warn('Could not remember latest CSV:',err)}
+}
+async function restoreLastUpload(){
+  try{
+    const db=await openLastUploadDB();
+    const saved=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(LAST_UPLOAD_STORE,'readonly');
+      const req=tx.objectStore(LAST_UPLOAD_STORE).get(LAST_UPLOAD_KEY);
+      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+    });
+    db.close();
+    if(!saved?.rawRows?.length)return false;
+    rawRows=saved.rawRows;
+    rows=parseRows(rawRows);
+    const when=saved.uploadedAt?new Date(saved.uploadedAt):new Date();
+    document.getElementById('fileStatus').textContent=saved.filename+' restored ('+rows.length+' rows). Upload a new CSV to replace it.';
+    document.getElementById('lastUpload').textContent='Remembered report: '+saved.filename+' | '+when.toLocaleString('en-AU');
+    renderFilters(); renderAll();
+    return true;
+  }catch(err){console.warn('Could not restore latest CSV:',err);return false}
+}
+function handleFile(file){
+  let reader=new FileReader();
+  reader.onload=async e=>{
+    let wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+    rawRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    rows=parseRows(rawRows);
+    const uploadedAt=new Date();
+    document.getElementById('fileStatus').textContent=file.name+' uploaded ('+rows.length+' rows) and remembered for next time.';
+    document.getElementById('lastUpload').textContent='Current report: '+file.name+' | '+uploadedAt.toLocaleString('en-AU');
+    renderFilters(); addHistory(file.name); renderAll();
+    await saveLastUpload(file.name,uploadedAt.toISOString(),rawRows);
+  };
+  reader.readAsArrayBuffer(file);
+}
+const drop=document.getElementById('drop');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
+loadHistory();renderHistory();renderAll();restoreLastUpload();
+</script>
+</body>
+</html>
