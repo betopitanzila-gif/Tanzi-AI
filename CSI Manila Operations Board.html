@@ -76,22 +76,31 @@ tr:hover{background:#fbfdff}
 <body>
 <div class="wrap">
   <div class="hero">
-    <h1>AFPG CSI Operations Intelligence Dashboard</h1>
-    <p>Upload any Xplan task report to view due work, completed work, task types from Subject, assignee queues, aged tasks and daily movement.</p>
+    <h1>CSI Manila Operations Dashboard</h1>
+    <p>Upload separate Xplan Tasks Due and Completed reports. The dashboard combines both reports to show current workload, completed work, task types, assignee performance, aged tasks and movement.</p>
   </div>
 
   <div class="panel upload-grid">
-    <div class="drop" id="drop">
-      <strong>Drop Xplan Tasks Due CSV/XLSX here</strong><br>
-      <span class="note">Reference columns supported: Due Date, Subject, Status, Entity, Assignee, Assigner, Basedate, Activated Date, Type, Thread Name, Subtype.</span><br>
-      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="margin-top:12px">
-      <div class="note" id="fileStatus">No report uploaded yet.</div>
+    <div>
+      <div class="drop" id="dueDrop">
+        <strong>1. Upload Tasks Due / Open Queue CSV or XLSX</strong><br>
+        <span class="note">Use the report containing tasks currently due, open, pending or in the assignee queue.</span><br>
+        <input type="file" id="dueFileInput" accept=".csv,.xlsx,.xls" style="margin-top:12px">
+        <div class="note" id="dueFileStatus">No Tasks Due report uploaded yet.</div>
+      </div>
+      <div class="drop" id="completedDrop" style="margin-top:12px">
+        <strong>2. Upload Completed Tasks CSV or XLSX</strong><br>
+        <span class="note">Use the report containing completed tasks for the selected week or month.</span><br>
+        <input type="file" id="completedFileInput" accept=".csv,.xlsx,.xls" style="margin-top:12px">
+        <div class="note" id="completedFileStatus">No Completed Tasks report uploaded yet.</div>
+      </div>
     </div>
     <div>
-      <div class="note"><strong>How the dashboard classifies tasks</strong><br>
-      It scans the Subject first, then Subtype/Thread Name if needed. Examples: Loan Thread Task 2a/2b, Advice Thread - Prioritise, XPlan Update or Full Set-up, PRF - Refresh Thread, Fee Consent, Task 3a, Update Xplan, Implementation Pack, SOA/ROA, Review Pack, Insurance, Withdrawal, Contribution, Rollover, Pension, Forms, Authority and more.</div>
+      <div class="note"><strong>How the dashboard works</strong><br>
+      Both reports are combined automatically. Tasks from the Completed report are treated as completed even where the export does not contain a completed status. The latest two uploads are remembered in this browser and restored when the dashboard is reopened.</div>
       <br>
-      <button class="secondary" onclick="clearHistory()">Clear saved upload history</button>
+      <button class="secondary" onclick="clearSavedReports()">Clear saved reports</button>
+      <button class="secondary" onclick="clearHistory()">Clear upload history</button>
       <button class="primary" onclick="exportCurrent()">Export current filtered table</button>
     </div>
   </div>
@@ -179,9 +188,8 @@ tr:hover{background:#fbfdff}
 let rawRows=[], rows=[], history=[], currentTable=[];
 const DAY=86400000, today=sod(new Date());
 const STORAGE='afpg_csi_ops_history_v4';
-const LAST_UPLOAD_DB='afpg_csi_ops_last_upload_v1';
-const LAST_UPLOAD_STORE='reports';
-const LAST_UPLOAD_KEY='latest';
+const REPORT_STORAGE='csi_manila_reports_v1';
+let dueRawRows=[], completedRawRows=[];
 
 function showTab(id,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
 function sod(d){let x=new Date(d);x.setHours(0,0,0,0);return x}
@@ -420,64 +428,60 @@ function exportCurrent(){
   arr.forEach(r=>lines.push([isCompleted(r)?'Completed':isOverdue(r)?'Overdue':'Open',r.taskType,r.entity,r.subject,r.assignee,r.assigner,fmt(r.dueDate),fmt(r.activatedDate),age(r)??'',r.threadName,r.subtype].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')));
   let blob=new Blob([lines.join('\n')],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='AFPG_CSI_Filtered_Tasks.csv'; a.click();
 }
-function openLastUploadDB(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(LAST_UPLOAD_DB,1);
-    req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(LAST_UPLOAD_STORE))req.result.createObjectStore(LAST_UPLOAD_STORE)};
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
+function rebuildCombinedRows(){
+  const dueParsed=parseRows(dueRawRows).map(r=>({...r,sourceReport:'Tasks Due'}));
+  const completedParsed=parseRows(completedRawRows).map(r=>({...r,status:'Completed',sourceReport:'Completed Tasks'}));
+  rows=[...dueParsed,...completedParsed];
+  rawRows=[...dueRawRows,...completedRawRows];
+  renderFilters();
+  renderAll();
 }
-async function saveLastUpload(filename, uploadedAt, data){
+function saveReports(meta={}){
+  try{localStorage.setItem(REPORT_STORAGE,JSON.stringify({dueRawRows,completedRawRows,meta,when:new Date().toISOString()}));}catch(e){console.warn('Could not save reports',e);}
+}
+function restoreReports(){
   try{
-    const db=await openLastUploadDB();
-    await new Promise((resolve,reject)=>{
-      const tx=db.transaction(LAST_UPLOAD_STORE,'readwrite');
-      tx.objectStore(LAST_UPLOAD_STORE).put({filename,uploadedAt,rawRows:data},LAST_UPLOAD_KEY);
-      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
-    });
-    db.close();
-  }catch(err){console.warn('Could not remember latest CSV:',err)}
+    const saved=JSON.parse(localStorage.getItem(REPORT_STORAGE)||'null');
+    if(!saved)return;
+    dueRawRows=saved.dueRawRows||[]; completedRawRows=saved.completedRawRows||[];
+    if(saved.meta?.dueName)document.getElementById('dueFileStatus').textContent=saved.meta.dueName+' restored ('+dueRawRows.length+' rows).';
+    if(saved.meta?.completedName)document.getElementById('completedFileStatus').textContent=saved.meta.completedName+' restored ('+completedRawRows.length+' rows).';
+    document.getElementById('lastUpload').textContent='Saved reports restored | '+new Date(saved.when).toLocaleString('en-AU');
+    rebuildCombinedRows();
+  }catch(e){console.warn('Could not restore reports',e);}
 }
-async function restoreLastUpload(){
-  try{
-    const db=await openLastUploadDB();
-    const saved=await new Promise((resolve,reject)=>{
-      const tx=db.transaction(LAST_UPLOAD_STORE,'readonly');
-      const req=tx.objectStore(LAST_UPLOAD_STORE).get(LAST_UPLOAD_KEY);
-      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
-    });
-    db.close();
-    if(!saved?.rawRows?.length)return false;
-    rawRows=saved.rawRows;
-    rows=parseRows(rawRows);
-    const when=saved.uploadedAt?new Date(saved.uploadedAt):new Date();
-    document.getElementById('fileStatus').textContent=saved.filename+' restored ('+rows.length+' rows). Upload a new CSV to replace it.';
-    document.getElementById('lastUpload').textContent='Remembered report: '+saved.filename+' | '+when.toLocaleString('en-AU');
-    renderFilters(); renderAll();
-    return true;
-  }catch(err){console.warn('Could not restore latest CSV:',err);return false}
-}
-function handleFile(file){
+function handleFile(file,kind){
   let reader=new FileReader();
-  reader.onload=async e=>{
+  reader.onload=e=>{
     let wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
-    rawRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
-    rows=parseRows(rawRows);
-    const uploadedAt=new Date();
-    document.getElementById('fileStatus').textContent=file.name+' uploaded ('+rows.length+' rows) and remembered for next time.';
-    document.getElementById('lastUpload').textContent='Current report: '+file.name+' | '+uploadedAt.toLocaleString('en-AU');
-    renderFilters(); addHistory(file.name); renderAll();
-    await saveLastUpload(file.name,uploadedAt.toISOString(),rawRows);
+    const imported=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    let saved={}; try{saved=JSON.parse(localStorage.getItem(REPORT_STORAGE)||'{}')}catch(e){}
+    const meta=saved.meta||{};
+    if(kind==='due'){dueRawRows=imported;meta.dueName=file.name;document.getElementById('dueFileStatus').textContent=file.name+' uploaded ('+imported.length+' rows).';}
+    else{completedRawRows=imported;meta.completedName=file.name;document.getElementById('completedFileStatus').textContent=file.name+' uploaded ('+imported.length+' rows).';}
+    rebuildCombinedRows(); saveReports(meta); addHistory((meta.dueName||'No due report')+' + '+(meta.completedName||'No completed report'));
+    document.getElementById('lastUpload').textContent='Reports updated | '+new Date().toLocaleString('en-AU');
   };
   reader.readAsArrayBuffer(file);
 }
-const drop=document.getElementById('drop');
-drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
-drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
-drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
-document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
-loadHistory();renderHistory();renderAll();restoreLastUpload();
+function wireDrop(id,kind){
+  const el=document.getElementById(id);
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag')});
+  el.addEventListener('dragleave',()=>el.classList.remove('drag'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0],kind)});
+}
+function clearSavedReports(){
+  if(confirm('Clear the saved Tasks Due and Completed reports from this browser?')){
+    localStorage.removeItem(REPORT_STORAGE);dueRawRows=[];completedRawRows=[];rows=[];rawRows=[];
+    document.getElementById('dueFileStatus').textContent='No Tasks Due report uploaded yet.';
+    document.getElementById('completedFileStatus').textContent='No Completed Tasks report uploaded yet.';
+    document.getElementById('lastUpload').textContent='Upload both reports to begin.';renderFilters();renderAll();
+  }
+}
+wireDrop('dueDrop','due'); wireDrop('completedDrop','completed');
+document.getElementById('dueFileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0],'due')});
+document.getElementById('completedFileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0],'completed')});
+loadHistory();renderHistory();restoreReports();renderAll();
 </script>
 </body>
 </html>
